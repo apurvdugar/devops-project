@@ -3,4 +3,8 @@ __pycache__/
 .pytest_cache/
 .venv/
 test.db
+test_*.db
+*.env
+.env.example
 .git/
+.dockerignore
