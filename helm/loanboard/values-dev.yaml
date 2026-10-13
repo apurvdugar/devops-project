@@ -1,10 +1,10 @@
 replicaCount: 1
 frontend:
-  image: loanboard-frontend
-  tag: local
+  image: ghcr.io/apurvdugar/loanboard-frontend
+  tag: latest
 backend:
-  image: loanboard-backend
-  tag: local
+  image: ghcr.io/apurvdugar/loanboard-backend
+  tag: latest
 ingress:
   enabled: true
   host: loanboard.local

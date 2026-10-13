@@ -35,7 +35,7 @@ GitOps is an operational framework that takes DevOps best practices used for app
 
 ## 3. Directory Layout
 
-- `application.yaml`: Registers the `loanboard` application with Argo CD, mapping the Git repository path `session21-python/helm/loanboard` to the `loanboard` Kubernetes namespace.
+- `application.yaml`: Registers the `loanboard` application with Argo CD, mapping the Git repository path `helm/loanboard` to the `loanboard` Kubernetes namespace.
 - `app-of-apps.yaml`: Root application manifest implementing the Argo CD "App of Apps" pattern to manage all sub-applications declaratively.
 
 ---

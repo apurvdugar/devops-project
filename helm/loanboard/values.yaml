@@ -1,8 +1,8 @@
 frontend:
-  image: ghcr.io/YOUR_ORG/loanboard-frontend
+  image: ghcr.io/apurvdugar/loanboard-frontend
   tag: latest
 backend:
-  image: ghcr.io/YOUR_ORG/loanboard-backend
+  image: ghcr.io/apurvdugar/loanboard-backend
   tag: latest
 replicaCount: 2
 namespace: loanboard
