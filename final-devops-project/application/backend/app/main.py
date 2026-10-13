@@ -1,13 +1,15 @@
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from prometheus_fastapi_instrumentator import Instrumentator
+from decimal import Decimal
 
 from .config import settings
 from .db import Base, engine, get_db
-from .models import Task
-from .schemas import StatsOut, TaskCreate, TaskOut, TaskUpdate
+from .loans import calculate_emi, validate_transition
+from .models import LoanApplication
+from .schemas import LoanCreate, LoanOut, LoanUpdate, StatsOut, StatusUpdate
 
 app = FastAPI(title=settings.app_name, version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -28,49 +30,86 @@ def health():
 
 @app.get("/ready")
 def ready(db: Session = Depends(get_db)):
-    db.execute(select(func.count(Task.id)))
+    db.execute(select(func.count(LoanApplication.id)))
     return {"status": "READY"}
 
-@app.get("/api/tasks", response_model=list[TaskOut])
-def list_tasks(db: Session = Depends(get_db)):
-    return list(db.scalars(select(Task).order_by(Task.id.desc())))
+@app.get("/api/loans", response_model=list[LoanOut])
+def list_loans(
+    status: str | None = Query(default=None),
+    loan_type: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    stmt = select(LoanApplication).order_by(LoanApplication.id.desc())
+    if status:
+        stmt = stmt.where(LoanApplication.status == status)
+    if loan_type:
+        stmt = stmt.where(LoanApplication.loan_type == loan_type)
+    return list(db.scalars(stmt))
 
-@app.get("/api/tasks/stats", response_model=StatsOut)
+@app.get("/api/loans/stats", response_model=StatsOut)
 def stats(db: Session = Depends(get_db)):
-    rows = db.execute(select(Task.status, func.count(Task.id)).group_by(Task.status)).all()
-    counts = {status: count for status, count in rows}
-    return StatsOut(total=sum(counts.values()), todo=counts.get("TODO", 0), inProgress=counts.get("IN_PROGRESS", 0), done=counts.get("DONE", 0))
+    rows = db.execute(select(LoanApplication.status, func.count(LoanApplication.id)).group_by(LoanApplication.status)).all()
+    counts = {s: c for s, c in rows}
+    total = sum(counts.values())
+    approved = counts.get("approved", 0)
+    pending = counts.get("submitted", 0) + counts.get("under_review", 0)
+    disbursed_total = db.execute(
+        select(func.coalesce(func.sum(LoanApplication.principal_amount), 0)).where(LoanApplication.status == "disbursed")
+    ).scalar_one()
+    avg = db.execute(select(func.coalesce(func.avg(LoanApplication.principal_amount), 0))).scalar_one()
+    return StatsOut(
+        total=total,
+        approved=approved,
+        pending=pending,
+        disbursed_total=Decimal(disbursed_total),
+        average_loan_size=Decimal(avg),
+    )
 
-@app.get("/api/tasks/{task_id}", response_model=TaskOut)
-def get_task(task_id: int, db: Session = Depends(get_db)):
-    task = db.get(Task, task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return task
+@app.get("/api/loans/{loan_id}", response_model=LoanOut)
+def get_loan(loan_id: int, db: Session = Depends(get_db)):
+    loan = db.get(LoanApplication, loan_id)
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found")
+    return loan
 
-@app.post("/api/tasks", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
-def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
-    task = Task(**payload.model_dump())
-    db.add(task)
+@app.post("/api/loans", response_model=LoanOut, status_code=status.HTTP_201_CREATED)
+def create_loan(payload: LoanCreate, db: Session = Depends(get_db)):
+    emi = calculate_emi(payload.principal_amount, payload.annual_interest_rate, payload.tenure_months)
+    loan = LoanApplication(**payload.model_dump(), status="submitted", emi=emi)
+    db.add(loan)
     db.commit()
-    db.refresh(task)
-    return task
+    db.refresh(loan)
+    return loan
 
-@app.put("/api/tasks/{task_id}", response_model=TaskOut)
-def update_task(task_id: int, payload: TaskUpdate, db: Session = Depends(get_db)):
-    task = db.get(Task, task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+@app.put("/api/loans/{loan_id}", response_model=LoanOut)
+def update_loan(loan_id: int, payload: LoanUpdate, db: Session = Depends(get_db)):
+    loan = db.get(LoanApplication, loan_id)
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found")
     for key, value in payload.model_dump(exclude_unset=True).items():
-        setattr(task, key, value)
+        setattr(loan, key, value)
+    # Recompute EMI if loan terms changed
+    loan.emi = calculate_emi(loan.principal_amount, loan.annual_interest_rate, loan.tenure_months)
     db.commit()
-    db.refresh(task)
-    return task
+    db.refresh(loan)
+    return loan
 
-@app.delete("/api/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(task_id: int, db: Session = Depends(get_db)):
-    task = db.get(Task, task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    db.delete(task)
+@app.patch("/api/loans/{loan_id}/status", response_model=LoanOut)
+def change_status(loan_id: int, payload: StatusUpdate, db: Session = Depends(get_db)):
+    loan = db.get(LoanApplication, loan_id)
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found")
+    validate_transition(loan.status, payload.status)
+    loan.status = payload.status
     db.commit()
+    db.refresh(loan)
+    return loan
+
+@app.delete("/api/loans/{loan_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_loan(loan_id: int, db: Session = Depends(get_db)):
+    loan = db.get(LoanApplication, loan_id)
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found")
+    db.delete(loan)
+    db.commit()
+
