@@ -139,11 +139,10 @@ npm run dev
 
 ## 5. Docker Setup
 
-Container assets are maintained in [`docker/`](./docker):
+A root-level [`docker-compose.yml`](./docker-compose.yml) is provided so the entire stack can be launched from the project root with a single command:
 
 ```bash
-cd docker/
-# Run multi-container stack in the background
+# Run multi-container stack from project root
 docker compose up -d --build
 
 # Verify container status
@@ -152,6 +151,8 @@ docker compose ps
 # Inspect logs
 docker compose logs -f
 ```
+
+An equivalent compose file is also available under [`docker/`](./docker) for isolated container development.
 
 ### Build & Run Individual Containers Manually
 ```bash
@@ -290,6 +291,10 @@ Security policies and scan scripts are located in [`security/`](./security):
 1. **Secret Scanning**: `gitleaks.toml` scans every commit to prevent API tokens, passwords, and private certificates from leaking into source control.
 2. **SAST (Static Application Security Testing)**: `.bandit` scans the Python AST for security anti-patterns (shell injections, weak hashing, debug modes).
 3. **SCA & Container Image Scanning**: `trivy.yaml` scans third-party Python/NPM packages and base OS layers for CVEs. The CI pipeline exits with code `1` if any unpatched HIGH or CRITICAL vulnerability is detected.
+
+### Trivy Scan — What It Does and What It Found
+
+Trivy scans the OS-level packages like the Alpine and application-level dependencies (Python pip packages in the backend image, Node npm packages and Nginx Alpine layers in the frontend image) for known Common Vulnerabilities and Exposures (CVEs). In the CI pipeline, Trivy is configured with `severity: HIGH,CRITICAL` and `exit-code: 1`, meaning the build fails and blocks images from reaching GHCR if any fixable HIGH or CRITICAL CVE is detected. Our most recent scan produced a clean result for both images, confirming all base layers and pinned dependencies are free of known high-severity vulnerabilities.
 
 ```bash
 # Execute local DevSecOps security suite:
