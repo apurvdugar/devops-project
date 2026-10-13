@@ -110,8 +110,8 @@ LoanBoard is a full-stack task management microservices application:
 ## 4. Application Setup
 
 The application code is organized under [`application/`](./application):
-- **Backend**: FastAPI REST service with CRUD endpoints for tasks, health endpoints (`/health`, `/ready`), and Prometheus `/metrics`.
-- **Frontend**: Responsive React UI providing task creation, status updates, and live server state views.
+- **Backend**: FastAPI REST service with CRUD endpoints for loan applications (EMI computed server-side, guarded status transitions), health endpoints (`/health`, `/ready`), and Prometheus `/metrics`.
+- **Frontend**: Responsive React LoanBoard UI with INR formatting, EMI column + create-form EMI preview, status badges, valid-next-state actions, and status/loan-type filters.
 
 ### Local Development Setup
 
@@ -389,6 +389,26 @@ Practice scenarios and broken manifests are provided in [`troubleshooting/`](./t
 | `image-10.png` | Troubleshooting 2: Service selector patch & endpoints | `screenshots/image-10.png` |
 
 ---
+
+---
+
+## 16. Domain decisions (LoanBoard)
+
+Loan API:
+
+```text
+GET    /api/loans?status=&loan_type=
+GET    /api/loans/stats
+GET    /api/loans/{id}
+POST   /api/loans
+PUT    /api/loans/{id}
+PATCH  /api/loans/{id}/status
+DELETE /api/loans/{id}
+```
+
+1. **EMI formula**: reducing-balance `EMI = P*r*(1+r)^n / ((1+r)^n - 1)`, `r = annual_rate/12/100`, computed server-side in `application/backend/app/loans.py` with `Decimal`, stored as `Numeric(12, 2)`. Known check: P=100000, 12%, 12m → ₹8884.88.
+2. **Status state machine**: `submitted → under_review → approved/rejected`, `approved → disbursed`; terminal `rejected`/`disbursed`. Other moves return HTTP 400 via `PATCH /api/loans/{id}/status`.
+3. **Money as Decimal**: `principal_amount Numeric(12,2)`, `annual_interest_rate Numeric(5,2)`; validation `principal > 0`, `tenure 6–360`, `rate 1–40%`, valid email. Never float for money.
 
 ## 15. Lessons Learned
 
