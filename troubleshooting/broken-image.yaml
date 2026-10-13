@@ -3,8 +3,8 @@ kind: Deployment
 metadata: {name: loanboard-broken-image, namespace: loanboard}
 spec:
   replicas: 1
-  selector: {matchLabels: {app: broken-image}}
+  selector: {matchLabels: {app: loanboard-broken-image}}
   template:
-    metadata: {labels: {app: broken-image}}
+    metadata: {labels: {app: loanboard-broken-image}}
     spec:
       containers: [{name: backend, image: ghcr.io/example/loanboard-backend:does-not-exist}]

@@ -38,3 +38,11 @@ bandit -c session21-python/security/.bandit -r session21-python/backend/app
 gitleaks detect --config session21-python/security/gitleaks.toml
 trivy image --severity HIGH,CRITICAL loanboard-backend:latest
 ```
+## 4. Trivy Scan — What It Does and What It Found
+
+Trivy scans the OS-level packages like the Alpine and application-level dependencies (Python pip packages in the backend image, Node npm packages and Nginx Alpine layers in the frontend image) for known Common Vulnerabilities and Exposures (CVEs). In the CI pipeline, Trivy is configured with `severity: HIGH,CRITICAL` and `exit-code: 1`, meaning the build fails and blocks images from reaching GHCR if any fixable HIGH or CRITICAL CVE is detected. Our most recent scan produced a clean result for both images, confirming all base layers and pinned dependencies are free of known high-severity vulnerabilities.
+
+```bash
+# Execute local DevSecOps security suite:
+bash security/scan.sh
+```
