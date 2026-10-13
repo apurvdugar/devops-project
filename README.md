@@ -134,6 +134,10 @@ cd ../frontend
 npm install
 npm run dev
 ```
+> ![Running with venv](./screenshots/image.png)
+> ![Backend local](./screenshots/image-1.png)
+> ![Frontend local](./screenshots/image-2.png)
+> ![Frontend local](./screenshots/image-3.png)
 
 ---
 
@@ -168,7 +172,8 @@ docker run -d -p 8000:8000 \
   ghcr.io/apurvdugar/loanboard-backend:latest
 ```
 
-> ![docker compose run](./screenshots/image.png)
+> ![docker compose run](./screenshots/image-4.png)
+> ![docker compose run](./screenshots/image-5.png)
 
 ---
 
@@ -195,7 +200,7 @@ kubectl get pods,svc,configmaps,secrets,pvc,hpa,ingress -n loanboard
 8. **HorizontalPodAutoscaler (HPA)**: Scales pods automatically between 2 and 5 replicas on CPU (>75%) or Memory (>80%)
 9. **Ingress**: Host-based routing for `loanboard.local`
 
-> ![kubernetes resources](./screenshots/image-3.png)
+> ![kubernetes resources](./screenshots/image-6.png)
 
 ---
 
@@ -224,7 +229,8 @@ helm list -n loanboard
 helm status loanboard -n loanboard
 ```
 
-> ![helm deployment](./screenshots/image-2.png)
+> ![helm deployment](./screenshots/image-7.png)
+
 
 ---
 
@@ -248,7 +254,13 @@ terraform apply tfplan
 aws eks update-kubeconfig --region us-east-1 --name loanboard-cluster
 ```
 
-> ![terraform infrastructure](./screenshots/image-4.png)
+> ![terraform infrastructure](./screenshots/image-8.png)
+> ![terraform infrastructure](./screenshots/image-9.png)
+> ![terraform infrastructure](./screenshots/image-10.png)
+> ![terraform infrastructure](./screenshots/image-11.png)
+> ![terraform infrastructure](./screenshots/image-13.png)
+> ![terraform infrastructure](./screenshots/image-14.png)
+> ![terraform infrastructure](./screenshots/image-15.png)
 
 ---
 
@@ -280,7 +292,7 @@ git push
    └── Updates Helm values / notifies Argo CD for GitOps sync
 ```
 
-> ![ci cd pipeline](./screenshots/image-5.png)
+> ![ci cd pipeline](./screenshots/image-12.png)
 
 ---
 
@@ -301,8 +313,7 @@ Trivy scans the OS-level packages like the Alpine and application-level dependen
 bash security/scan.sh
 ```
 
-> ![trivy scan](./screenshots/image-6.png)
-
+> ![trivy scan](./screenshots/image-16.png)
 ---
 
 ## 11. Monitoring & Observability
@@ -325,7 +336,8 @@ kubectl apply -f monitoring/servicemonitor.yaml
 kubectl port-forward svc/monitoring-grafana -n monitoring 3000:80
 ```
 
-> ![grafana dashboard](./screenshots/image-7.png)
+> ![grafana dashboard](./screenshots/image-17.png)
+> ![grafana dashboard](./screenshots/image-18.png)
 
 ---
 
@@ -349,7 +361,9 @@ kubectl apply -f gitops/application.yaml
 kubectl get applications -n argocd
 ```
 
-> ![argocd dashboard](./screenshots/image-8.png)
+> ![argocd dashboard](./screenshots/image-19.png)
+> ![argocd dashboard](./screenshots/image-20.png)
+> ![argocd dashboard](./screenshots/image-21.png)
 
 ---
 
@@ -364,7 +378,7 @@ Practice scenarios and broken manifests are provided in [`troubleshooting/`](./t
 - **Remediation**: `kubectl set image deployment/loanboard-broken-image backend=ghcr.io/apurvdugar/loanboard-backend:latest -n loanboard`.
 - **Verification**: Pod transitions to `Running` and passes readiness probes.
 
-> ![troubleshooting image](./screenshots/image-9.png)
+> ![troubleshooting image](./screenshots/image-22.png)
 
 ### Challenge 2: Service Selector Mismatch
 - **Issue**: Incoming traffic fails; `kubectl get endpoints broken-service -n loanboard` returns `<none>`.
@@ -373,31 +387,12 @@ Practice scenarios and broken manifests are provided in [`troubleshooting/`](./t
 - **Remediation**: Update the selector using `kubectl set selector svc broken-service "app=loanboard-backend" -n loanboard`.
 - **Verification**: Endpoints instantly update with healthy pod IPs (`10.244.x.x:8000`).
 
-> ![troubleshooting service](./screenshots/image-10.png)
+
+> ![troubleshooting service](./screenshots/image-23.png)
 
 ---
 
-## 14. Screenshots Reference
-
-| Screenshot | Description | Target Path |
-|---|---|---|
-| `image.png` | Docker Compose running services | `screenshots/image.png` |
-| `image-1.png` | Docker build and tag outputs | `screenshots/image-1.png` |
-| `image-2.png` | Helm upgrade & deployment status | `screenshots/image-2.png` |
-| `image-3.png` | Kubectl get all, hpa, ingress in loanboard namespace | `screenshots/image-3.png` |
-| `image-4.png` | Terraform apply outputs (VPC + EKS cluster) | `screenshots/image-4.png` |
-| `image-5.png` | GitHub Actions CI/CD pipeline green runs | `screenshots/image-5.png` |
-| `image-6.png` | Trivy security scan report output | `screenshots/image-6.png` |
-| `image-7.png` | Grafana metrics dashboard | `screenshots/image-7.png` |
-| `image-8.png` | Argo CD UI showing Synced & Healthy state | `screenshots/image-8.png` |
-| `image-9.png` | Troubleshooting 1: Pod describe & image fix | `screenshots/image-9.png` |
-| `image-10.png` | Troubleshooting 2: Service selector patch & endpoints | `screenshots/image-10.png` |
-
----
-
----
-
-## 16. Domain decisions (LoanBoard)
+## 14. Domain decisions (LoanBoard)
 
 Loan API:
 
