@@ -1,18 +1,18 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: taskboard-backend-monitor
-  namespace: taskboard
+  name: loanboard-backend-monitor
+  namespace: loanboard
   labels:
     release: monitoring
-    app: taskboard-backend
+    app: loanboard-backend
 spec:
   selector:
     matchLabels:
-      app: taskboard-backend
+      app: loanboard-backend
   namespaceSelector:
     matchNames:
-      - taskboard
+      - loanboard
   endpoints:
     - port: http
       path: /metrics

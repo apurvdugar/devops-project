@@ -4,7 +4,7 @@ This directory contains the security gate configurations and tooling used to shi
 
 ---
 
-## 1. Pillars of DevSecOps in TaskBoard
+## 1. Pillars of DevSecOps in LoanBoard
 
 | Pillar | Focus | Tool | Config / Gate |
 |---|---|---|---|
@@ -36,5 +36,5 @@ bash session21-python/security/scan.sh
 # Or run individual tools:
 bandit -c session21-python/security/.bandit -r session21-python/backend/app
 gitleaks detect --config session21-python/security/gitleaks.toml
-trivy image --severity HIGH,CRITICAL taskboard-backend:latest
+trivy image --severity HIGH,CRITICAL loanboard-backend:latest
 ```

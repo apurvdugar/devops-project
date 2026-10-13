@@ -1,13 +1,13 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: taskboard-backend-hpa
-  namespace: taskboard
+  name: loanboard-backend-hpa
+  namespace: loanboard
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: taskboard-backend
+    name: loanboard-backend
   minReplicas: 2
   maxReplicas: 5
   metrics:
@@ -27,13 +27,13 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: taskboard-frontend-hpa
-  namespace: taskboard
+  name: loanboard-frontend-hpa
+  namespace: loanboard
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: taskboard-frontend
+    name: loanboard-frontend
   minReplicas: 2
   maxReplicas: 4
   metrics:

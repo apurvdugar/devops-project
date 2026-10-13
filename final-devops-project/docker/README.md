@@ -1,6 +1,6 @@
 # Docker Setup & Containerization
 
-This directory contains containerization files for building and testing the TaskBoard microservices locally using Docker and Docker Compose.
+This directory contains containerization files for building and testing the LoanBoard microservices locally using Docker and Docker Compose.
 
 ---
 
@@ -34,8 +34,8 @@ Access points:
 ### Build Images Individually
 ```bash
 # Build Backend
-docker build -t ghcr.io/apurvdugar/taskboard-backend:latest -f Dockerfile.backend ../application/backend
+docker build -t ghcr.io/apurvdugar/loanboard-backend:latest -f Dockerfile.backend ../application/backend
 
 # Build Frontend
-docker build -t ghcr.io/apurvdugar/taskboard-frontend:latest -f Dockerfile.frontend ../application/frontend
+docker build -t ghcr.io/apurvdugar/loanboard-frontend:latest -f Dockerfile.frontend ../application/frontend
 ```

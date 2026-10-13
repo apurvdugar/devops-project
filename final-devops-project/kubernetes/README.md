@@ -8,7 +8,7 @@ This directory contains standalone Kubernetes manifests organized for declarativ
 
 | Manifest | Kind | Purpose |
 |---|---|---|
-| `00-namespace.yaml` | `Namespace` | Creates isolated `taskboard` namespace |
+| `00-namespace.yaml` | `Namespace` | Creates isolated `loanboard` namespace |
 | `01-configmap.yaml` | `ConfigMap` | Non-sensitive runtime application configuration |
 | `02-secret.yaml` | `Secret` | Sensitive credentials (Postgres password, connection string) |
 | `03-pvc.yaml` | `PersistentVolumeClaim` | 5Gi persistent volume claim for PostgreSQL database |
@@ -43,5 +43,5 @@ kubectl apply -f final-devops-project/kubernetes/08-ingress.yaml
 
 Verify deployment:
 ```bash
-kubectl get all,pvc,hpa,ingress -n taskboard
+kubectl get all,pvc,hpa,ingress -n loanboard
 ```

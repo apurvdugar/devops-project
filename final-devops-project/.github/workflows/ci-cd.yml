@@ -1,4 +1,4 @@
-name: TaskBoard Python CI/CD
+name: LoanBoard Python CI/CD
 on:
   push:
     branches: [main]
@@ -15,15 +15,15 @@ jobs:
         with: {python-version: '3.12'}
       - name: Install backend dependencies
         run: pip install -r requirements.txt
-        working-directory: backend
+        working-directory: final-devops-project/application/backend
       - name: Run backend tests
         run: pytest -q
-        working-directory: backend
+        working-directory: final-devops-project/application/backend
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
       - name: Build frontend
         run: npm install && npm run build
-        working-directory: frontend
+        working-directory: final-devops-project/application/frontend
   build-scan-push:
     needs: test
     runs-on: ubuntu-latest
@@ -37,26 +37,26 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build images
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/taskboard-backend:${{ github.sha }} ./backend
-          docker build -t ghcr.io/${{ github.repository_owner }}/taskboard-frontend:${{ github.sha }} ./frontend
+          docker build -t ghcr.io/${{ github.repository_owner }}/loanboard-backend:${{ github.sha }} ./final-devops-project/application/backend
+          docker build -t ghcr.io/${{ github.repository_owner }}/loanboard-frontend:${{ github.sha }} ./final-devops-project/application/frontend
       - name: Scan backend
         uses: aquasecurity/trivy-action@0.30.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/taskboard-backend:${{ github.sha }}
+          image-ref: ghcr.io/${{ github.repository_owner }}/loanboard-backend:${{ github.sha }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
       - name: Scan frontend
         uses: aquasecurity/trivy-action@0.30.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/taskboard-frontend:${{ github.sha }}
+          image-ref: ghcr.io/${{ github.repository_owner }}/loanboard-frontend:${{ github.sha }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
       - name: Push images
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/taskboard-backend:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository_owner }}/taskboard-frontend:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/loanboard-backend:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/loanboard-frontend:${{ github.sha }}
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build-scan-push
@@ -72,8 +72,8 @@ jobs:
           echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
       - name: Deploy with Helm
         run: |
-          helm upgrade --install taskboard ./helm/taskboard -n taskboard --create-namespace \
+          helm upgrade --install loanboard ./final-devops-project/helm/loanboard -n loanboard --create-namespace \
             --set backend.tag=${{ github.sha }} \
             --set frontend.tag=${{ github.sha }} \
-            --set backend.image=ghcr.io/${{ github.repository_owner }}/taskboard-backend \
-            --set frontend.image=ghcr.io/${{ github.repository_owner }}/taskboard-frontend
+            --set backend.image=ghcr.io/${{ github.repository_owner }}/loanboard-backend \
+            --set frontend.image=ghcr.io/${{ github.repository_owner }}/loanboard-frontend

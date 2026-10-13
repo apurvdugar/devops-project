@@ -1,18 +1,18 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: taskboard-postgres
+    container_name: loanboard-postgres
     restart: always
     environment:
-      POSTGRES_DB: taskboard
-      POSTGRES_USER: taskboard
-      POSTGRES_PASSWORD: taskboard
+      POSTGRES_DB: loanboard
+      POSTGRES_USER: loanboard
+      POSTGRES_PASSWORD: loanboard
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U taskboard"]
+      test: ["CMD-SHELL", "pg_isready -U loanboard"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,10 +21,10 @@ services:
     build:
       context: ../application/backend
       dockerfile: Dockerfile
-    container_name: taskboard-backend
+    container_name: loanboard-backend
     restart: always
     environment:
-      DATABASE_URL: postgresql+psycopg://taskboard:taskboard@postgres:5432/taskboard
+      DATABASE_URL: postgresql+psycopg://loanboard:loanboard@postgres:5432/loanboard
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,7 +35,7 @@ services:
     build:
       context: ../application/frontend
       dockerfile: Dockerfile
-    container_name: taskboard-frontend
+    container_name: loanboard-frontend
     restart: always
     depends_on:
       - backend

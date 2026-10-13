@@ -1,13 +1,13 @@
 replicaCount: 1
 frontend:
-  image: taskboard-frontend
+  image: loanboard-frontend
   tag: local
 backend:
-  image: taskboard-backend
+  image: loanboard-backend
   tag: local
 ingress:
   enabled: true
-  host: taskboard.local
+  host: loanboard.local
 hpa:
   enabled: false
 monitoring:

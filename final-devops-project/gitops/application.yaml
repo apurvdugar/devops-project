@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: taskboard
+  name: loanboard
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -10,13 +10,13 @@ spec:
   source:
     repoURL: https://github.com/apurvdugar/devops-heros.git
     targetRevision: main
-    path: final-devops-project/helm/taskboard
+    path: final-devops-project/helm/loanboard
     helm:
       valueFiles:
         - values-dev.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: taskboard
+    namespace: loanboard
   syncPolicy:
     automated:
       prune: true

@@ -1,6 +1,6 @@
 # GitOps Workflow with Argo CD
 
-This folder contains the declarative GitOps delivery definitions for the TaskBoard project using **Argo CD**.
+This folder contains the declarative GitOps delivery definitions for the LoanBoard project using **Argo CD**.
 
 ---
 
@@ -35,7 +35,7 @@ GitOps is an operational framework that takes DevOps best practices used for app
 
 ## 3. Directory Layout
 
-- `application.yaml`: Registers the `taskboard` application with Argo CD, mapping the Git repository path `session21-python/helm/taskboard` to the `taskboard` Kubernetes namespace.
+- `application.yaml`: Registers the `loanboard` application with Argo CD, mapping the Git repository path `session21-python/helm/loanboard` to the `loanboard` Kubernetes namespace.
 - `app-of-apps.yaml`: Root application manifest implementing the Argo CD "App of Apps" pattern to manage all sub-applications declaratively.
 
 ---
@@ -65,7 +65,7 @@ echo ""
 ```
 Login via browser at `https://localhost:8080` with username `admin`.
 
-### Step 3: Deploy the TaskBoard GitOps Application
+### Step 3: Deploy the LoanBoard GitOps Application
 ```bash
 # Apply the application CRD
 kubectl apply -f session21-python/gitops/application.yaml
@@ -74,14 +74,14 @@ kubectl apply -f session21-python/gitops/application.yaml
 kubectl get applications -n argocd
 
 # Describe application synchronization details
-kubectl describe application taskboard -n argocd
+kubectl describe application loanboard -n argocd
 ```
 
 ### Step 4: Verify Automated Self-Healing & Drift Detection
 ```bash
 # Intentionally cause configuration drift by scaling down manually
-kubectl scale deployment taskboard-backend --replicas=0 -n taskboard
+kubectl scale deployment loanboard-backend --replicas=0 -n loanboard
 
 # Observe Argo CD detecting drift and automatically reconciling back to 2 replicas:
-kubectl get pods -n taskboard -w
+kubectl get pods -n loanboard -w
 ```

@@ -1,0 +1,27 @@
+# env / secrets
+.env
+*.env
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+test.db
+test_*.db
+verify.db
+
+# node
+node_modules/
+dist/
+
+# terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+
+# misc
+.DS_Store

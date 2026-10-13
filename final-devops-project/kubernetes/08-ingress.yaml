@@ -1,41 +1,41 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: taskboard-ingress
-  namespace: taskboard
+  name: loanboard-ingress
+  namespace: loanboard
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   rules:
-    - host: taskboard.local
+    - host: loanboard.local
       http:
         paths:
           - path: /api
             pathType: Prefix
             backend:
               service:
-                name: taskboard-backend
+                name: loanboard-backend
                 port:
                   number: 8000
           - path: /docs
             pathType: Prefix
             backend:
               service:
-                name: taskboard-backend
+                name: loanboard-backend
                 port:
                   number: 8000
           - path: /openapi.json
             pathType: Prefix
             backend:
               service:
-                name: taskboard-backend
+                name: loanboard-backend
                 port:
                   number: 8000
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: taskboard-frontend
+                name: loanboard-frontend
                 port:
                   number: 80

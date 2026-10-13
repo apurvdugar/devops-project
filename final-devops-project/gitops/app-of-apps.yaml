@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: taskboard-root-apps
+  name: loanboard-root-apps
   namespace: argocd
 spec:
   project: default

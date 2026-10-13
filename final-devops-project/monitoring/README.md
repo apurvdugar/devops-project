@@ -6,9 +6,9 @@ This directory contains configuration files and manifests to set up end-to-end m
 
 ## 1. Components
 
-- **Prometheus**: Scrapes and stores time-series metrics from nodes, Kubernetes control plane, and TaskBoard pods.
+- **Prometheus**: Scrapes and stores time-series metrics from nodes, Kubernetes control plane, and LoanBoard pods.
 - **Grafana**: Preconfigured visual dashboards for CPU, memory, request rates, error codes, and network I/O.
-- **ServiceMonitor**: Custom Resource Definition (`ServiceMonitor`) configured to scrape the `/metrics` endpoint on `taskboard-backend`.
+- **ServiceMonitor**: Custom Resource Definition (`ServiceMonitor`) configured to scrape the `/metrics` endpoint on `loanboard-backend`.
 - **Alertmanager**: Dispatches alerts based on threshold violations (e.g. High CPU, Pod CrashLoopBackOff).
 
 ---
@@ -46,6 +46,6 @@ kubectl port-forward svc/monitoring-kube-prometheus-prometheus -n monitoring 909
 ```
 
 Recommended Prometheus Queries:
-- CPU Utilization: `sum(rate(container_cpu_usage_seconds_total{namespace="taskboard"}[5m])) by (pod)`
-- Memory Utilization: `sum(container_memory_working_set_bytes{namespace="taskboard"}) by (pod)`
-- Request Rate: `sum(rate(http_requests_total{namespace="taskboard"}[5m]))`
+- CPU Utilization: `sum(rate(container_cpu_usage_seconds_total{namespace="loanboard"}[5m])) by (pod)`
+- Memory Utilization: `sum(container_memory_working_set_bytes{namespace="loanboard"}) by (pod)`
+- Request Rate: `sum(rate(http_requests_total{namespace="loanboard"}[5m]))`

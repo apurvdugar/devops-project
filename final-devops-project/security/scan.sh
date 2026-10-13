@@ -22,8 +22,8 @@ fi
 
 echo "--> 3. SCA & Container Image Scanning (Trivy)"
 if command -v trivy &> /dev/null; then
-  trivy image --config "$SCRIPT_DIR/trivy.yaml" taskboard-backend:local || true
-  trivy image --config "$SCRIPT_DIR/trivy.yaml" taskboard-frontend:local || true
+  trivy image --config "$SCRIPT_DIR/trivy.yaml" loanboard-backend:local || true
+  trivy image --config "$SCRIPT_DIR/trivy.yaml" loanboard-frontend:local || true
 else
   echo "[SKIP] trivy CLI not installed locally, skipping local run."
 fi

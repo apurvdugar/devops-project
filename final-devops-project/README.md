@@ -1,4 +1,4 @@
-# End-to-End Production DevOps Project: TaskBoard
+# End-to-End Production DevOps Project: LoanBoard
 
 An enterprise-grade, end-to-end cloud-native DevOps project demonstrating modern software delivery, automated cloud infrastructure provisioning, containerized microservices orchestration, DevSecOps shift-left security, continuous monitoring, and declarative GitOps continuous delivery.
 
@@ -6,7 +6,7 @@ An enterprise-grade, end-to-end cloud-native DevOps project demonstrating modern
 
 ## 1. Project Overview
 
-TaskBoard is a full-stack task management microservices application:
+LoanBoard is a full-stack task management microservices application:
 - **Backend API**: Python 3.12 with **FastAPI**, **SQLAlchemy**, and **Pydantic** with unit & integration tests written in **pytest**.
 - **Frontend SPA**: Modern reactive UI built with **React** + **Vite**, served via a hardened multi-stage **Nginx** Alpine container.
 - **Database**: **PostgreSQL 16** with persistent volume storage and automated connection lifecycle management.
@@ -42,7 +42,7 @@ TaskBoard is a full-stack task management microservices application:
       │
       └───► 3. Argo CD (GitOps Continuous Reconciliation)
                 │
-                │ Watches: final-devops-project/helm/taskboard
+                │ Watches: final-devops-project/helm/loanboard
                 │ Pulls desired state & detects live cluster drift
                 ▼
  =============================================================================================================
@@ -56,33 +56,33 @@ TaskBoard is a full-stack task management microservices application:
    =========================================================================================================
                                        KUBERNETES CLUSTER (EKS / LOCAL)
    =========================================================================================================
-    Namespace: taskboard
+    Namespace: loanboard
      │
      ├── Ingress Controller (Nginx Ingress / ALB)
      │       │
-     │       ├── /api, /docs, /ready ────────► [Service: taskboard-backend] (Port 8000)
+     │       ├── /api, /docs, /ready ────────► [Service: loanboard-backend] (Port 8000)
      │       │                                          │
      │       │                                          ▼
-     │       │                                [Deployment: taskboard-backend] (Replicas: 2-5)
+     │       │                                [Deployment: loanboard-backend] (Replicas: 2-5)
      │       │                                  ├── FastAPI Application Container
      │       │                                  ├── Probes: Startup, Liveness, Readiness
      │       │                                  └── Horizontal Pod Autoscaler (HPA)
      │       │                                          │
      │       │                                          ▼ (SQLAlchemy / psycopg)
-     │       │                                [Service & Deployment: taskboard-postgres]
+     │       │                                [Service & Deployment: loanboard-postgres]
      │       │                                  ├── PostgreSQL 16 Container
-     │       │                                  └── PVC: taskboard-postgres-pvc (5Gi)
+     │       │                                  └── PVC: loanboard-postgres-pvc (5Gi)
      │       │
-     │       └── / ──────────────────────────► [Service: taskboard-frontend] (Port 80)
+     │       └── / ──────────────────────────► [Service: loanboard-frontend] (Port 80)
      │                                                  │
      │                                                  ▼
-     │                                        [Deployment: taskboard-frontend] (Replicas: 2-4)
+     │                                        [Deployment: loanboard-frontend] (Replicas: 2-4)
      │                                          ├── React SPA (Nginx Alpine)
      │                                          └── Horizontal Pod Autoscaler (HPA)
      │
     Namespace: monitoring
      │
-     ├── [Prometheus Operator] ◄── Scrapes /metrics via ServiceMonitor ──► [taskboard-backend]
+     ├── [Prometheus Operator] ◄── Scrapes /metrics via ServiceMonitor ──► [loanboard-backend]
      ├── [Alertmanager]
      └── [Grafana Dashboards] (CPU, Memory, Request Rate, Error Latencies)
 ```
@@ -118,14 +118,14 @@ The application code is organized under [`application/`](./application):
 #### Option A: Running with Virtual Environment & Node
 ```bash
 # 1. Start PostgreSQL
-docker run -d --name local-postgres -e POSTGRES_DB=taskboard -e POSTGRES_USER=taskboard -e POSTGRES_PASSWORD=taskboard -p 5432:5432 postgres:16-alpine
+docker run -d --name local-postgres -e POSTGRES_DB=loanboard -e POSTGRES_USER=loanboard -e POSTGRES_PASSWORD=loanboard -p 5432:5432 postgres:16-alpine
 
 # 2. Run Backend
 cd application/backend
 python -m venv .venv
 # Linux/macOS: source .venv/bin/activate | Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-export DATABASE_URL="postgresql+psycopg://taskboard:taskboard@localhost:5432/taskboard"
+export DATABASE_URL="postgresql+psycopg://loanboard:loanboard@localhost:5432/loanboard"
 pytest
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
@@ -156,15 +156,15 @@ docker compose logs -f
 ### Build & Run Individual Containers Manually
 ```bash
 # Build Backend image
-docker build -t ghcr.io/apurvdugar/taskboard-backend:latest -f docker/Dockerfile.backend application/backend
+docker build -t ghcr.io/apurvdugar/loanboard-backend:latest -f docker/Dockerfile.backend application/backend
 
 # Build Frontend image
-docker build -t ghcr.io/apurvdugar/taskboard-frontend:latest -f docker/Dockerfile.frontend application/frontend
+docker build -t ghcr.io/apurvdugar/loanboard-frontend:latest -f docker/Dockerfile.frontend application/frontend
 
 # Test Backend container
 docker run -d -p 8000:8000 \
-  -e DATABASE_URL="postgresql+psycopg://taskboard:taskboard@host.docker.internal:5432/taskboard" \
-  ghcr.io/apurvdugar/taskboard-backend:latest
+  -e DATABASE_URL="postgresql+psycopg://loanboard:loanboard@host.docker.internal:5432/loanboard" \
+  ghcr.io/apurvdugar/loanboard-backend:latest
 ```
 
 > ![docker compose run](./screenshots/image.png)
@@ -180,11 +180,11 @@ The [`kubernetes/`](./kubernetes) directory provides raw, declarative YAML manif
 kubectl apply -f kubernetes/
 
 # Verify objects across all types
-kubectl get pods,svc,configmaps,secrets,pvc,hpa,ingress -n taskboard
+kubectl get pods,svc,configmaps,secrets,pvc,hpa,ingress -n loanboard
 ```
 
 ### Included Kubernetes Resources:
-1. **Namespace**: `taskboard` isolation
+1. **Namespace**: `loanboard` isolation
 2. **ConfigMap**: Application parameters (`DB_NAME`, `ENVIRONMENT`, `PORT`)
 3. **Secret**: Base64 encoded database credentials and connection URLs
 4. **PersistentVolumeClaim**: 5Gi storage allocation for PostgreSQL data
@@ -192,7 +192,7 @@ kubectl get pods,svc,configmaps,secrets,pvc,hpa,ingress -n taskboard
 6. **Deployment & Service (Backend)**: 2-replica stateless FastAPI application configured with `startupProbe`, `livenessProbe`, and `readinessProbe`
 7. **Deployment & Service (Frontend)**: 2-replica Nginx web server
 8. **HorizontalPodAutoscaler (HPA)**: Scales pods automatically between 2 and 5 replicas on CPU (>75%) or Memory (>80%)
-9. **Ingress**: Host-based routing for `taskboard.local`
+9. **Ingress**: Host-based routing for `loanboard.local`
 
 > ![kubernetes resources](./screenshots/image-3.png)
 
@@ -200,27 +200,27 @@ kubectl get pods,svc,configmaps,secrets,pvc,hpa,ingress -n taskboard
 
 ## 7. Helm Deployment
 
-The [`helm/taskboard`](./helm/taskboard) chart provides parameterized templating and multi-environment values (`values-dev.yaml` and `values-prod.yaml`).
+The [`helm/loanboard`](./helm/loanboard) chart provides parameterized templating and multi-environment values (`values-dev.yaml` and `values-prod.yaml`).
 
 ```bash
 # Lint the chart
-helm lint helm/taskboard
+helm lint helm/loanboard
 
 # Deploy in Development mode
-helm upgrade --install taskboard helm/taskboard \
-  --namespace taskboard \
+helm upgrade --install loanboard helm/loanboard \
+  --namespace loanboard \
   --create-namespace \
-  -f helm/taskboard/values-dev.yaml
+  -f helm/loanboard/values-dev.yaml
 
 # Deploy in Production mode (higher replicas, tighter resource limits)
-helm upgrade --install taskboard helm/taskboard \
-  --namespace taskboard \
+helm upgrade --install loanboard helm/loanboard \
+  --namespace loanboard \
   --create-namespace \
-  -f helm/taskboard/values-prod.yaml
+  -f helm/loanboard/values-prod.yaml
 
 # Inspect release
-helm list -n taskboard
-helm status taskboard -n taskboard
+helm list -n loanboard
+helm status loanboard -n loanboard
 ```
 
 > ![helm deployment](./screenshots/image-2.png)
@@ -244,7 +244,7 @@ terraform plan -out=tfplan
 terraform apply tfplan
 
 # Configure kubeconfig to connect to newly created EKS cluster:
-aws eks update-kubeconfig --region us-east-1 --name taskboard-cluster
+aws eks update-kubeconfig --region us-east-1 --name loanboard-cluster
 ```
 
 > ![terraform infrastructure](./screenshots/image-4.png)
@@ -305,7 +305,7 @@ bash security/scan.sh
 Observability configurations are located in [`monitoring/`](./monitoring):
 
 - **Prometheus Operator**: Deployed via `kube-prometheus-stack` Helm chart.
-- **ServiceMonitor**: Custom CRD [`monitoring/servicemonitor.yaml`](./monitoring/servicemonitor.yaml) targets `taskboard-backend` pods on port 8000.
+- **ServiceMonitor**: Custom CRD [`monitoring/servicemonitor.yaml`](./monitoring/servicemonitor.yaml) targets `loanboard-backend` pods on port 8000.
 - **Grafana Dashboard**: Visualizes cluster CPU, memory saturation, container restarts, and HTTP response latencies.
 
 ```bash
@@ -337,7 +337,7 @@ Declarative continuous delivery definitions are located in [`gitops/`](./gitops)
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-# Register the TaskBoard GitOps application
+# Register the LoanBoard GitOps application
 kubectl apply -f gitops/application.yaml
 
 # Monitor GitOps Synchronization
@@ -353,19 +353,19 @@ kubectl get applications -n argocd
 Practice scenarios and broken manifests are provided in [`troubleshooting/`](./troubleshooting):
 
 ### Challenge 1: ErrImagePull / ImagePullBackOff
-- **Issue**: Deployment `taskboard-broken-image` enters `ImagePullBackOff`.
-- **Investigation**: `kubectl describe pod -l app=taskboard-broken-image -n taskboard` shows `Failed to pull image ... NotFound`.
+- **Issue**: Deployment `loanboard-broken-image` enters `ImagePullBackOff`.
+- **Investigation**: `kubectl describe pod -l app=loanboard-broken-image -n loanboard` shows `Failed to pull image ... NotFound`.
 - **Root Cause**: Invalid image tag `does-not-exist`.
-- **Remediation**: `kubectl set image deployment/taskboard-broken-image backend=ghcr.io/apurvdugar/taskboard-backend:latest -n taskboard`.
+- **Remediation**: `kubectl set image deployment/loanboard-broken-image backend=ghcr.io/apurvdugar/loanboard-backend:latest -n loanboard`.
 - **Verification**: Pod transitions to `Running` and passes readiness probes.
 
 > ![troubleshooting image](./screenshots/image-9.png)
 
 ### Challenge 2: Service Selector Mismatch
-- **Issue**: Incoming traffic fails; `kubectl get endpoints broken-service -n taskboard` returns `<none>`.
+- **Issue**: Incoming traffic fails; `kubectl get endpoints broken-service -n loanboard` returns `<none>`.
 - **Investigation**: Service selector points to `app: label-that-does-not-exist`.
-- **Root Cause**: Selector label does not match actual running pods (`app: taskboard-backend`).
-- **Remediation**: Update the selector using `kubectl set selector svc broken-service "app=taskboard-backend" -n taskboard`.
+- **Root Cause**: Selector label does not match actual running pods (`app: loanboard-backend`).
+- **Remediation**: Update the selector using `kubectl set selector svc broken-service "app=loanboard-backend" -n loanboard`.
 - **Verification**: Endpoints instantly update with healthy pod IPs (`10.244.x.x:8000`).
 
 > ![troubleshooting service](./screenshots/image-10.png)
@@ -379,7 +379,7 @@ Practice scenarios and broken manifests are provided in [`troubleshooting/`](./t
 | `image.png` | Docker Compose running services | `screenshots/image.png` |
 | `image-1.png` | Docker build and tag outputs | `screenshots/image-1.png` |
 | `image-2.png` | Helm upgrade & deployment status | `screenshots/image-2.png` |
-| `image-3.png` | Kubectl get all, hpa, ingress in taskboard namespace | `screenshots/image-3.png` |
+| `image-3.png` | Kubectl get all, hpa, ingress in loanboard namespace | `screenshots/image-3.png` |
 | `image-4.png` | Terraform apply outputs (VPC + EKS cluster) | `screenshots/image-4.png` |
 | `image-5.png` | GitHub Actions CI/CD pipeline green runs | `screenshots/image-5.png` |
 | `image-6.png` | Trivy security scan report output | `screenshots/image-6.png` |

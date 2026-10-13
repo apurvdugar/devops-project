@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: taskboard-frontend
-  namespace: taskboard
+  name: loanboard-frontend
+  namespace: loanboard
   labels:
-    app: taskboard-frontend
+    app: loanboard-frontend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: taskboard-frontend
+      app: loanboard-frontend
   template:
     metadata:
       labels:
-        app: taskboard-frontend
+        app: loanboard-frontend
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/apurvdugar/taskboard-frontend:latest
+          image: ghcr.io/apurvdugar/loanboard-frontend:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
@@ -45,14 +45,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: taskboard-frontend
-  namespace: taskboard
+  name: loanboard-frontend
+  namespace: loanboard
   labels:
-    app: taskboard-frontend
+    app: loanboard-frontend
 spec:
   type: ClusterIP
   selector:
-    app: taskboard-frontend
+    app: loanboard-frontend
   ports:
     - port: 80
       targetPort: 80

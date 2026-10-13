@@ -1,0 +1,4 @@
+# Dummy values only — never commit real credentials.
+aws_region   = "ap-south-1"
+cluster_name = "loanboard-eks"
+environment  = "dev"
