@@ -24,10 +24,10 @@ helm repo update
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
   -n monitoring \
   --create-namespace \
-  -f final-devops-project/monitoring/prometheus-values.yaml
+  -f monitoring/prometheus-values.yaml
 
 # Apply the custom ServiceMonitor
-kubectl apply -f final-devops-project/monitoring/servicemonitor.yaml
+kubectl apply -f monitoring/servicemonitor.yaml
 
 # Verify monitoring pods
 kubectl get pods -n monitoring

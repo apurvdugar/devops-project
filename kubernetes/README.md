@@ -25,20 +25,20 @@ This directory contains standalone Kubernetes manifests organized for declarativ
 Apply all manifests in sequence:
 
 ```bash
-kubectl apply -f final-devops-project/kubernetes/
+kubectl apply -f kubernetes/
 ```
 
 Or step-by-step:
 ```bash
-kubectl apply -f final-devops-project/kubernetes/00-namespace.yaml
-kubectl apply -f final-devops-project/kubernetes/01-configmap.yaml
-kubectl apply -f final-devops-project/kubernetes/02-secret.yaml
-kubectl apply -f final-devops-project/kubernetes/03-pvc.yaml
-kubectl apply -f final-devops-project/kubernetes/04-postgres.yaml
-kubectl apply -f final-devops-project/kubernetes/05-backend.yaml
-kubectl apply -f final-devops-project/kubernetes/06-frontend.yaml
-kubectl apply -f final-devops-project/kubernetes/07-hpa.yaml
-kubectl apply -f final-devops-project/kubernetes/08-ingress.yaml
+kubectl apply -f kubernetes/00-namespace.yaml
+kubectl apply -f kubernetes/01-configmap.yaml
+kubectl apply -f kubernetes/02-secret.yaml
+kubectl apply -f kubernetes/03-pvc.yaml
+kubectl apply -f kubernetes/04-postgres.yaml
+kubectl apply -f kubernetes/05-backend.yaml
+kubectl apply -f kubernetes/06-frontend.yaml
+kubectl apply -f kubernetes/07-hpa.yaml
+kubectl apply -f kubernetes/08-ingress.yaml
 ```
 
 Verify deployment:

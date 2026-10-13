@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/apurvdugar/devops-heros.git
     targetRevision: main
-    path: final-devops-project/gitops
+    path: gitops
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

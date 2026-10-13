@@ -1,809 +1,424 @@
-# Session 21 — DevOps Final Capstone: TaskBoard (Python)
+# End-to-End Production DevOps Project: LoanBoard
 
-## 1. What we are building
+An enterprise-grade, end-to-end cloud-native DevOps project demonstrating modern software delivery, automated cloud infrastructure provisioning, containerized microservices orchestration, DevSecOps shift-left security, continuous monitoring, and declarative GitOps continuous delivery.
 
-TaskBoard is a small but realistic SaaS-style project management application:
+---
 
-- React + Vite frontend
-- Responsive HTML/JSX + CSS UI
-- FastAPI Python backend
-- PostgreSQL database
-- SQLAlchemy ORM
-- Alembic database migrations
-- REST APIs
-- Pytest automated tests
-- Docker containers
-- GitHub Actions CI/CD
-- Trivy container security scanning
-- GitHub Container Registry
-- Terraform for AWS infrastructure
-- AWS VPC + EKS
-- Kubernetes
-- Helm
-- Ingress
-- HPA
-- Prometheus + Grafana
-- Health/readiness endpoints
-- Troubleshooting exercises
+## 1. Project Overview
 
-The point is not to teach isolated tools. The point is to show how a real application travels from a developer laptop to a monitored Kubernetes environment.
+LoanBoard is a full-stack task management microservices application:
+- **Backend API**: Python 3.12 with **FastAPI**, **SQLAlchemy**, and **Pydantic** with unit & integration tests written in **pytest**.
+- **Frontend SPA**: Modern reactive UI built with **React** + **Vite**, served via a hardened multi-stage **Nginx** Alpine container.
+- **Database**: **PostgreSQL 16** with persistent volume storage and automated connection lifecycle management.
+- **Cloud Infrastructure**: Modular AWS infrastructure provisioned with **Terraform** (custom VPC with public/private subnets, NAT Gateways, Security Groups, and an AWS EKS Managed Kubernetes cluster).
+- **Orchestration**: Kubernetes manifests and reusable, environment-driven **Helm** charts supporting local dev and production profiles.
+- **CI/CD Pipeline**: Automated **GitHub Actions** workflows performing automated testing, multi-arch Docker image builds, security scanning, GHCR publishing, and deployment triggers.
+- **DevSecOps**: Multi-layer security gates integrating **SAST** (Bandit), **SCA** (Trivy), **Secret Scanning** (Gitleaks), and **Container Vulnerability Scanning** with automated build blocking on HIGH/CRITICAL CVEs.
+- **Monitoring & Observability**: **Prometheus Operator** and **Grafana** stack with custom `ServiceMonitor` definitions, metric scraping, and pre-built health and resource dashboards.
+- **GitOps Delivery**: Continuous reconciliation, drift detection, and automated self-healing powered by **Argo CD**.
+- **Troubleshooting**: Diagnostic lab solving real-world Kubernetes failure modes (`ImagePullBackOff` and broken service selectors).
+
+---
+
+## 2. Architecture Diagram
 
 ```text
-Developer
-   |
-   v
-Git / GitHub
-   |
-   v
-GitHub Actions
-   |-- pytest
-   |-- frontend build
-   |-- Docker build
-   |-- Trivy scan
-   `-- push images to GHCR
-              |
-              v
-        Terraform
-              |
-       AWS VPC + EKS
-              |
-              v
-            Helm
-              |
-      +-------+--------+
-      |                |
-   Frontend          Backend
-    React            FastAPI
-      |                |
-      +-------> PostgreSQL
-              |
-       Prometheus
-              |
-           Grafana
+=============================================================================================================
+                                     DEVELOPER WORKFLOW & GITOPS LIFECYCLE
+=============================================================================================================
+
+ [Developer]
+      │
+      │ 1. Git Commit & Push
+      ▼
+ [GitHub Repository] (Source of Truth: App Code, Terraform, Helm Charts, GitOps Manifests)
+      │
+      ├───► 2. GitHub Actions CI/CD Pipeline
+      │         │
+      │         ├── Stage 1: Build & Automated Testing (pytest + npm test/build)
+      │         ├── Stage 2: DevSecOps Gates (Gitleaks secrets + Bandit SAST)
+      │         ├── Stage 3: Docker Build & Vulnerability Scan (Trivy CVE scanner)
+      │         └── Stage 4: Push Hardened Images to GitHub Container Registry (GHCR)
+      │
+      └───► 3. Argo CD (GitOps Continuous Reconciliation)
+                │
+                │ Watches: helm/loanboard
+                │ Pulls desired state & detects live cluster drift
+                ▼
+ =============================================================================================================
+                                       AWS CLOUD INFRASTRUCTURE (TERRAFORM)
+ =============================================================================================================
+  AWS VPC (10.20.0.0/16)
+   ├── Public Subnets (NAT Gateways, Internet Gateway, External ALB Ingress)
+   └── Private Subnets (AWS EKS Cluster v1.31 with Managed Node Groups: t3.medium)
+        │
+        ▼
+   =========================================================================================================
+                                       KUBERNETES CLUSTER (EKS / LOCAL)
+   =========================================================================================================
+    Namespace: loanboard
+     │
+     ├── Ingress Controller (Nginx Ingress / ALB)
+     │       │
+     │       ├── /api, /docs, /ready ────────► [Service: loanboard-backend] (Port 8000)
+     │       │                                          │
+     │       │                                          ▼
+     │       │                                [Deployment: loanboard-backend] (Replicas: 2-5)
+     │       │                                  ├── FastAPI Application Container
+     │       │                                  ├── Probes: Startup, Liveness, Readiness
+     │       │                                  └── Horizontal Pod Autoscaler (HPA)
+     │       │                                          │
+     │       │                                          ▼ (SQLAlchemy / psycopg)
+     │       │                                [Service & Deployment: loanboard-postgres]
+     │       │                                  ├── PostgreSQL 16 Container
+     │       │                                  └── PVC: loanboard-postgres-pvc (5Gi)
+     │       │
+     │       └── / ──────────────────────────► [Service: loanboard-frontend] (Port 80)
+     │                                                  │
+     │                                                  ▼
+     │                                        [Deployment: loanboard-frontend] (Replicas: 2-4)
+     │                                          ├── React SPA (Nginx Alpine)
+     │                                          └── Horizontal Pod Autoscaler (HPA)
+     │
+    Namespace: monitoring
+     │
+     ├── [Prometheus Operator] ◄── Scrapes /metrics via ServiceMonitor ──► [loanboard-backend]
+     ├── [Alertmanager]
+     └── [Grafana Dashboards] (CPU, Memory, Request Rate, Error Latencies)
 ```
 
 ---
 
-## 2. Repository structure
+## 3. Technologies Used
 
-```text
-session21-devops-capstone-final/
-├── frontend/                 # React application and CSS
-├── backend/                  # FastAPI application
-│   ├── app/                  # API, models, schemas, DB config
-│   ├── tests/                # Pytest tests
-│   └── alembic/              # DB migrations
-├── docker-compose.yml        # Full local stack
-├── terraform/                # AWS VPC + EKS infrastructure
-├── helm/taskboard/            # Kubernetes package
-├── k8s/                      # namespace/bootstrap manifests
-├── monitoring/               # Prometheus/Grafana values
-├── troubleshooting/          # deliberately broken manifests
-├── scripts/                  # load-test helpers
-└── .github/workflows/        # CI/CD
-```
+| Category | Technologies & Tools |
+|---|---|
+| **Programming & Frameworks** | Python 3.12, FastAPI, SQLAlchemy, Pydantic, Node.js, React, Vite |
+| **Databases & Storage** | PostgreSQL 16, Kubernetes PersistentVolumeClaims (PVC) |
+| **Containerization** | Docker, Docker Compose, Multi-stage Builds, Distroless / Alpine |
+| **Artifact Registry** | GitHub Container Registry (GHCR) |
+| **Container Orchestration** | Kubernetes (EKS / Kind / Minikube), Ingress-Nginx, HPA |
+| **Package Management** | Helm 3 |
+| **Infrastructure as Code** | Terraform, HashiCorp AWS Provider (VPC, Subnets, EKS, IAM, Security Groups) |
+| **CI / CD Automation** | GitHub Actions |
+| **DevSecOps & Security** | Trivy (Vulnerabilities & IaC), Gitleaks (Secrets), Bandit (SAST) |
+| **Monitoring & Observability** | Prometheus, Grafana, Alertmanager, ServiceMonitor CRDs |
+| **GitOps Continuous Delivery** | Argo CD (declarative synchronization, automated self-healing) |
 
 ---
 
-# PART A — UNDERSTAND THE APPLICATION
+## 4. Application Setup
 
-## 3. Frontend
+The application code is organized under [`application/`](./application):
+- **Backend**: FastAPI REST service with CRUD endpoints for loan applications (EMI computed server-side, guarded status transitions), health endpoints (`/health`, `/ready`), and Prometheus `/metrics`.
+- **Frontend**: Responsive React LoanBoard UI with INR formatting, EMI column + create-form EMI preview, status badges, valid-next-state actions, and status/loan-type filters.
 
-The frontend is intentionally closer to a real SaaS dashboard than a tutorial CRUD page.
+### Local Development Setup
 
-It contains:
-
-- dark sidebar
-- workspace navigation
-- dashboard header
-- KPI cards
-- task table
-- status filters
-- priority badges
-- activity feed
-- pipeline indicator
-- create-task modal
-- responsive CSS
-- loading and backend-error states
-
-The browser calls `/api/tasks` and `/api/tasks/stats`.
-
-The browser does **not** need to know the internal backend hostname. Nginx and Kubernetes Ingress handle routing.
-
-## 4. Backend
-
-FastAPI exposes:
-
-```text
-GET    /
-GET    /health
-GET    /ready
-GET    /metrics
-
-GET    /api/tasks
-GET    /api/tasks/{id}
-POST   /api/tasks
-PUT    /api/tasks/{id}
-DELETE /api/tasks/{id}
-GET    /api/tasks/stats
-```
-
-Swagger documentation is available at `/docs` when the backend is running.
-
-### Why `/health`?
-
-A container can be alive while its application is unhealthy. `/health` gives Kubernetes a cheap liveness check.
-
-### Why `/ready`?
-
-Readiness answers a different question: **can this application serve traffic now?** The endpoint verifies database access before returning READY.
-
-### Why `/metrics`?
-
-Prometheus needs machine-readable metrics. The FastAPI Prometheus instrumentator exposes request metrics for monitoring.
-
----
-
-# PART B — RUN IT LOCALLY
-
-## 5. Fastest method: Docker Compose
-
-Requirements:
-
-- Docker Desktop / Docker Engine
-- Docker Compose
-
-Run:
-
+#### Option A: Running with Virtual Environment & Node
 ```bash
-docker compose up --build
-```
+# 1. Start PostgreSQL
+docker run -d --name local-postgres -e POSTGRES_DB=loanboard -e POSTGRES_USER=loanboard -e POSTGRES_PASSWORD=loanboard -p 5432:5432 postgres:16-alpine
 
-Open:
-
-```text
-http://localhost:3000
-```
-
-Backend:
-
-```text
-http://localhost:8000/docs
-http://localhost:8000/health
-http://localhost:8000/metrics
-```
-
-Stop:
-
-```bash
-docker compose down
-```
-
-Delete database volume too:
-
-```bash
-docker compose down -v
-```
-
----
-
-## 6. Run backend directly
-
-Requirements:
-
-- Python 3.12+
-- PostgreSQL
-
-```bash
-cd backend
+# 2. Run Backend
+cd application/backend
 python -m venv .venv
-source .venv/bin/activate
+# Linux/macOS: source .venv/bin/activate | Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-```
+export DATABASE_URL="postgresql+psycopg://loanboard:loanboard@localhost:5432/loanboard"
+pytest
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-Set the database connection:
-
-```bash
-export DATABASE_URL='postgresql+psycopg://taskboard:taskboard@localhost:5432/taskboard'
-```
-
-Run migrations:
-
-```bash
-alembic upgrade head
-```
-
-Start FastAPI:
-
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-Test:
-
-```bash
-curl http://localhost:8000/health
-curl http://localhost:8000/api/tasks
-```
-
-Open:
-
-```text
-http://localhost:8000/docs
+# 3. Run Frontend
+cd ../frontend
+npm install
+npm run dev
 ```
 
 ---
 
-# PART C — TESTING
+## 5. Docker Setup
 
-## 7. Pytest
+A root-level [`docker-compose.yml`](./docker-compose.yml) is provided so the entire stack can be launched from the project root with a single command:
 
 ```bash
-cd backend
-pytest -q
+# Run multi-container stack from project root
+docker compose up -d --build
+
+# Verify container status
+docker compose ps
+
+# Inspect logs
+docker compose logs -f
 ```
 
-Students should understand why tests happen **before Docker images are pushed**.
+An equivalent compose file is also available under [`docker/`](./docker) for isolated container development.
 
-```text
-Bad code
-  ↓
-pytest fails
-  ↓
-Pipeline stops
-  ↓
-No broken image is promoted
+### Build & Run Individual Containers Manually
+```bash
+# Build Backend image
+docker build -t ghcr.io/apurvdugar/loanboard-backend:latest -f docker/Dockerfile.backend application/backend
+
+# Build Frontend image
+docker build -t ghcr.io/apurvdugar/loanboard-frontend:latest -f docker/Dockerfile.frontend application/frontend
+
+# Test Backend container
+docker run -d -p 8000:8000 \
+  -e DATABASE_URL="postgresql+psycopg://loanboard:loanboard@host.docker.internal:5432/loanboard" \
+  ghcr.io/apurvdugar/loanboard-backend:latest
 ```
 
-This is the first quality gate.
+> ![docker compose run](./screenshots/image.png)
 
 ---
 
-# PART D — GIT AND GITHUB
+## 6. Kubernetes Deployment
 
-## 8. Initialize Git
+The [`kubernetes/`](./kubernetes) directory provides raw, declarative YAML manifests:
 
 ```bash
-git init
-git add .
-git commit -m "initial TaskBoard application"
-git branch -M main
-git remote add origin <YOUR_GITHUB_REPO>
-git push -u origin main
+# Apply entire directory
+kubectl apply -f kubernetes/
+
+# Verify objects across all types
+kubectl get pods,svc,configmaps,secrets,pvc,hpa,ingress -n loanboard
 ```
 
-Explain:
+### Included Kubernetes Resources:
+1. **Namespace**: `loanboard` isolation
+2. **ConfigMap**: Application parameters (`DB_NAME`, `ENVIRONMENT`, `PORT`)
+3. **Secret**: Base64 encoded database credentials and connection URLs
+4. **PersistentVolumeClaim**: 5Gi storage allocation for PostgreSQL data
+5. **Deployment & Service (PostgreSQL)**: Single-replica stateful backend database
+6. **Deployment & Service (Backend)**: 2-replica stateless FastAPI application configured with `startupProbe`, `livenessProbe`, and `readinessProbe`
+7. **Deployment & Service (Frontend)**: 2-replica Nginx web server
+8. **HorizontalPodAutoscaler (HPA)**: Scales pods automatically between 2 and 5 replicas on CPU (>75%) or Memory (>80%)
+9. **Ingress**: Host-based routing for `loanboard.local`
 
-- Git = version control
-- GitHub = remote collaboration/source platform
-- commit = immutable project checkpoint
-- branch = isolated line of development
-- pull request = controlled change review
+> ![kubernetes resources](./screenshots/image-3.png)
 
 ---
 
-# PART E — DOCKER
+## 7. Helm Deployment
 
-## 9. Backend Dockerfile
-
-The backend image:
-
-1. starts from Python
-2. installs dependencies
-3. copies Alembic
-4. copies application code
-5. creates a non-root user
-6. exposes port 8000
-7. runs migrations
-8. starts Uvicorn
-
-Build:
+The [`helm/loanboard`](./helm/loanboard) chart provides parameterized templating and multi-environment values (`values-dev.yaml` and `values-prod.yaml`).
 
 ```bash
-docker build -t taskboard-backend:local ./backend
+# Lint the chart
+helm lint helm/loanboard
+
+# Deploy in Development mode
+helm upgrade --install loanboard helm/loanboard \
+  --namespace loanboard \
+  --create-namespace \
+  -f helm/loanboard/values-dev.yaml
+
+# Deploy in Production mode (higher replicas, tighter resource limits)
+helm upgrade --install loanboard helm/loanboard \
+  --namespace loanboard \
+  --create-namespace \
+  -f helm/loanboard/values-prod.yaml
+
+# Inspect release
+helm list -n loanboard
+helm status loanboard -n loanboard
 ```
 
-Run with a reachable PostgreSQL instance:
-
-```bash
-docker run --rm -p 8000:8000 \
-  -e DATABASE_URL='postgresql+psycopg://taskboard:taskboard@host.docker.internal:5432/taskboard' \
-  taskboard-backend:local
-```
-
-## 10. Frontend Dockerfile
-
-The frontend uses a multi-stage build:
-
-```text
-Node
-  ↓
-npm build
-  ↓
-static dist/
-  ↓
-Nginx runtime image
-```
-
-This keeps build tooling out of the final runtime image.
-
-Build:
-
-```bash
-docker build -t taskboard-frontend:local ./frontend
-```
+> ![helm deployment](./screenshots/image-2.png)
 
 ---
 
-# PART F — CI/CD
+## 8. Terraform Infrastructure
 
-## 11. GitHub Actions pipeline
+Cloud resources are defined under [`terraform/`](./terraform) using HashiCorp AWS modules:
 
-The workflow has three conceptual stages:
-
-```text
-TEST
- ↓
-BUILD + SECURITY SCAN + PUSH
- ↓
-DEPLOY
-```
-
-### Test job
-
-- checkout
-- setup Python
-- install requirements
-- run pytest
-- setup Node
-- build React frontend
-
-### Build/scan/push job
-
-- build backend image
-- build frontend image
-- scan both with Trivy
-- push to GHCR
-
-### Deploy job
-
-- install Helm
-- configure kubectl
-- run `helm upgrade --install`
-
-The image tag is the Git commit SHA.
-
-That means:
-
-```text
-commit A → image A
-commit B → image B
-commit C → image C
-```
-
-This gives traceability from production back to source code.
-
----
-
-# PART G — SECURITY SCANNING
-
-## 12. Trivy
-
-The pipeline scans container images for HIGH and CRITICAL vulnerabilities.
-
-A security scanner is not a magic guarantee of security. It is one automated control in the pipeline.
-
-Students should understand:
-
-```text
-SAST
-Dependency scanning
-Secret scanning
-Container scanning
-Runtime security
-```
-
-These are different security layers.
-
----
-
-# PART H — TERRAFORM
-
-## 13. Why Terraform?
-
-Kubernetes only manages workloads. It does not create the AWS network and EKS infrastructure in this project.
-
-Terraform creates:
-
-```text
-AWS
- ├── VPC
- ├── public subnets
- ├── private subnets
- ├── NAT gateway
- └── EKS cluster
-       └── managed worker nodes
-```
-
-Go to Terraform:
+### AWS Resources Managed:
+- **Custom VPC**: `10.20.0.0/16` across 2 Availability Zones (`us-east-1a`, `us-east-1b`)
+- **Subnets**: Public subnets with Internet Gateway and Private subnets with Managed NAT Gateway
+- **EKS Cluster**: Kubernetes v1.31 with IAM control plane roles and managed node group (`t3.medium`, auto-scaling min 2 / max 4)
 
 ```bash
-cd terraform
+cd terraform/
 terraform init
-terraform plan
-terraform apply
+terraform validate
+terraform plan -out=tfplan
+terraform apply tfplan
+
+# Configure kubeconfig to connect to newly created EKS cluster:
+aws eks update-kubeconfig --region us-east-1 --name loanboard-cluster
 ```
 
-The default region is `ap-south-1`.
-
-After EKS is created, configure kubectl using the command shown by AWS/Terraform output.
-
-Destroy when finished:
-
-```bash
-terraform destroy
-```
-
-### Important teaching point
-
-Terraform is **Infrastructure as Code**.
-
-Instead of manually clicking:
-
-```text
-AWS Console → VPC → Subnet → EKS → Nodes...
-```
-
-we describe infrastructure in code and let Terraform reconcile the desired state.
+> ![terraform infrastructure](./screenshots/image-4.png)
 
 ---
 
-# PART I — KUBERNETES
+## 9. CI/CD Pipeline
 
-## 14. Namespace
+The GitHub Actions pipeline ([`.github/workflows/ci-cd.yml`](./.github/workflows/ci-cd.yml)) runs automatically on every pull request and push to the `main` branch:
 
-```bash
-kubectl apply -f k8s/namespace.yaml
+```text
+git push
+   │
+   ▼
+[Job 1: Test & Lint]
+   ├── Python backend unit tests (pytest)
+   ├── Frontend lint & production build (npm run build)
+   │
+   ▼
+[Job 2: DevSecOps Gates]
+   ├── Gitleaks secret scan
+   ├── Bandit SAST security analysis
+   │
+   ▼
+[Job 3: Docker Build & Vulnerability Scan]
+   ├── Build Docker images
+   ├── Run Trivy scan for CRITICAL and HIGH CVEs (Security Gate)
+   └── Push images to GitHub Container Registry (ghcr.io)
+   │
+   ▼
+[Job 4: Automated Deploy] (Triggers on main branch)
+   └── Updates Helm values / notifies Argo CD for GitOps sync
 ```
 
-A namespace provides logical isolation for the application.
-
-## 15. Helm
-
-Instead of maintaining many manually edited YAML files, Helm turns the Kubernetes deployment into a reusable package.
-
-```bash
-helm upgrade --install taskboard ./helm/taskboard \
-  --namespace taskboard \
-  --create-namespace
-```
-
-Important Helm concepts:
-
-- Chart
-- values
-- templates
-- release
-- upgrade
-- rollback
+> ![ci cd pipeline](./screenshots/image-5.png)
 
 ---
 
-# PART J — KUBERNETES COMPONENTS
+## 10. DevSecOps Implementation
 
-## 16. Deployment
+Security policies and scan scripts are located in [`security/`](./security):
 
-The Deployment manages backend/frontend Pods.
+1. **Secret Scanning**: `gitleaks.toml` scans every commit to prevent API tokens, passwords, and private certificates from leaking into source control.
+2. **SAST (Static Application Security Testing)**: `.bandit` scans the Python AST for security anti-patterns (shell injections, weak hashing, debug modes).
+3. **SCA & Container Image Scanning**: `trivy.yaml` scans third-party Python/NPM packages and base OS layers for CVEs. The CI pipeline exits with code `1` if any unpatched HIGH or CRITICAL vulnerability is detected.
 
-If a Pod dies:
+### Trivy Scan — What It Does and What It Found
 
-```text
-Deployment
-   ↓
-creates replacement Pod
+Trivy scans the OS-level packages like the Alpine and application-level dependencies (Python pip packages in the backend image, Node npm packages and Nginx Alpine layers in the frontend image) for known Common Vulnerabilities and Exposures (CVEs). In the CI pipeline, Trivy is configured with `severity: HIGH,CRITICAL` and `exit-code: 1`, meaning the build fails and blocks images from reaching GHCR if any fixable HIGH or CRITICAL CVE is detected. Our most recent scan produced a clean result for both images, confirming all base layers and pinned dependencies are free of known high-severity vulnerabilities.
+
+```bash
+# Execute local DevSecOps security suite:
+bash security/scan.sh
 ```
 
-## 17. Service
-
-Pods are ephemeral. A Service provides stable networking.
-
-```text
-Frontend → backend Service → backend Pods
-```
-
-## 18. PostgreSQL
-
-For the classroom/local Kubernetes demo, PostgreSQL is deployed inside the cluster with a PVC.
-
-For production AWS architecture, students should understand the tradeoff between running PostgreSQL in Kubernetes and using a managed database such as Amazon RDS.
+> ![trivy scan](./screenshots/image-6.png)
 
 ---
 
-# PART K — INGRESS
+## 11. Monitoring & Observability
 
-## 19. Ingress
+Observability configurations are located in [`monitoring/`](./monitoring):
 
-The application has two logical routes:
-
-```text
-/taskboard.local/
-      ↓
-React frontend
-
-/taskboard.local/api
-      ↓
-FastAPI backend
-```
-
-Enable ingress with the dev values:
+- **Prometheus Operator**: Deployed via `kube-prometheus-stack` Helm chart.
+- **ServiceMonitor**: Custom CRD [`monitoring/servicemonitor.yaml`](./monitoring/servicemonitor.yaml) targets `loanboard-backend` pods on port 8000.
+- **Grafana Dashboard**: Visualizes cluster CPU, memory saturation, container restarts, and HTTP response latencies.
 
 ```bash
-helm upgrade --install taskboard ./helm/taskboard \
-  -n taskboard \
-  -f helm/taskboard/values-dev.yaml
+# Deploy monitoring stack
+helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+  -n monitoring --create-namespace \
+  -f monitoring/prometheus-values.yaml
+
+kubectl apply -f monitoring/servicemonitor.yaml
+
+# Access Grafana
+kubectl port-forward svc/monitoring-grafana -n monitoring 3000:80
 ```
 
-Students should understand that an Ingress resource is only configuration. An Ingress Controller must actually implement it.
+> ![grafana dashboard](./screenshots/image-7.png)
 
 ---
 
-# PART L — HPA
+## 12. GitOps with Argo CD
 
-## 20. Horizontal Pod Autoscaler
+Declarative continuous delivery definitions are located in [`gitops/`](./gitops):
 
-The HPA can scale the backend based on CPU utilization.
-
-```text
-low traffic
-   ↓
-2 Pods
-
-high CPU
-   ↓
-3 Pods
-   ↓
-4 Pods
-   ↓
-...
-```
-
-Inspect:
+- **Single Source of Truth**: Kubernetes state is synchronized with the Git repository.
+- **Continuous Reconciliation**: Argo CD detects any configuration drift between the Git repository and the live cluster every 3 minutes.
+- **Automated Self-Healing**: If a pod or service is modified or deleted manually, Argo CD immediately restores the desired state defined in Git (`selfHeal: true`).
 
 ```bash
-kubectl get hpa -n taskboard
+# Install Argo CD
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Register the LoanBoard GitOps application
+kubectl apply -f gitops/application.yaml
+
+# Monitor GitOps Synchronization
+kubectl get applications -n argocd
 ```
 
-HPA requires resource requests and a metrics provider such as Metrics Server.
-
-A normal health request may not create enough CPU pressure to demonstrate scaling. For a classroom demo, use a controlled load generator and watch the metrics.
+> ![argocd dashboard](./screenshots/image-8.png)
 
 ---
 
-# PART M — MONITORING
+## 13. Troubleshooting Challenges & Solutions
 
-## 21. Prometheus
+Practice scenarios and broken manifests are provided in [`troubleshooting/`](./troubleshooting):
 
-Prometheus collects metrics from the FastAPI `/metrics` endpoint.
+### Challenge 1: ErrImagePull / ImagePullBackOff
+- **Issue**: Deployment `loanboard-broken-image` enters `ImagePullBackOff`.
+- **Investigation**: `kubectl describe pod -l app=loanboard-broken-image -n loanboard` shows `Failed to pull image ... NotFound`.
+- **Root Cause**: Invalid image tag `does-not-exist`.
+- **Remediation**: `kubectl set image deployment/loanboard-broken-image backend=ghcr.io/apurvdugar/loanboard-backend:latest -n loanboard`.
+- **Verification**: Pod transitions to `Running` and passes readiness probes.
 
-The ServiceMonitor tells the Prometheus Operator what to scrape.
+> ![troubleshooting image](./screenshots/image-9.png)
 
-## 22. Grafana
+### Challenge 2: Service Selector Mismatch
+- **Issue**: Incoming traffic fails; `kubectl get endpoints broken-service -n loanboard` returns `<none>`.
+- **Investigation**: Service selector points to `app: label-that-does-not-exist`.
+- **Root Cause**: Selector label does not match actual running pods (`app: loanboard-backend`).
+- **Remediation**: Update the selector using `kubectl set selector svc broken-service "app=loanboard-backend" -n loanboard`.
+- **Verification**: Endpoints instantly update with healthy pod IPs (`10.244.x.x:8000`).
 
-Grafana visualizes the collected metrics.
-
-Useful questions:
-
-- How many HTTP requests are arriving?
-- Which endpoint is slow?
-- Are errors increasing?
-- Is the application receiving traffic?
-- Is CPU increasing?
-- Is HPA scaling?
-
----
-
-# PART N — TROUBLESHOOTING LAB
-
-## 23. Broken image
-
-Apply:
-
-```bash
-kubectl apply -f troubleshooting/broken-image.yaml
-```
-
-Then:
-
-```bash
-kubectl get pods
-kubectl describe pod <pod-name>
-kubectl get events --sort-by=.lastTimestamp
-```
-
-Expected investigation:
-
-```text
-ImagePullBackOff
-      ↓
-describe Pod
-      ↓
-wrong image/tag
-      ↓
-fix deployment
-```
-
-## 24. Broken Service
-
-Apply:
-
-```bash
-kubectl apply -f troubleshooting/broken-service.yaml
-```
-
-Investigate:
-
-```bash
-kubectl get svc
-kubectl get endpoints
-kubectl get pods --show-labels
-```
-
-The key lesson is that a Service selects Pods using labels.
-
-No matching labels = no endpoints = no traffic.
+> ![troubleshooting service](./screenshots/image-10.png)
 
 ---
 
-# PART O — FINAL DEMO
+## 14. Screenshots Reference
 
-### 1. Application
-
-Open TaskBoard and create a task.
-
-### 2. API
-
-Open FastAPI Swagger:
-
-```text
-/docs
-```
-
-Create/read/update/delete a task.
-
-### 3. Database
-
-Show the PostgreSQL `tasks` table.
-
-### 4. Git
-
-Make a small application change and commit it.
-
-### 5. CI
-
-Push to GitHub and show tests running.
-
-### 6. Docker
-
-Show the two images.
-
-### 7. Security
-
-Show Trivy scanning the images.
-
-### 8. Registry
-
-Show the images in GHCR.
-
-### 9. Terraform
-
-Show the AWS infrastructure code.
-
-### 10. Kubernetes
-
-```bash
-kubectl get pods -n taskboard
-kubectl get svc -n taskboard
-```
-
-### 11. Helm
-
-```bash
-helm list -n taskboard
-```
-
-### 12. Ingress
-
-Open the application through the Ingress hostname.
-
-### 13. HPA
-
-```bash
-kubectl get hpa -n taskboard
-```
-
-### 14. Monitoring
-
-Show Prometheus and Grafana.
-
-### 15. Failure simulation
-
-Break a Service/image and troubleshoot it live.
+| Screenshot | Description | Target Path |
+|---|---|---|
+| `image.png` | Docker Compose running services | `screenshots/image.png` |
+| `image-1.png` | Docker build and tag outputs | `screenshots/image-1.png` |
+| `image-2.png` | Helm upgrade & deployment status | `screenshots/image-2.png` |
+| `image-3.png` | Kubectl get all, hpa, ingress in loanboard namespace | `screenshots/image-3.png` |
+| `image-4.png` | Terraform apply outputs (VPC + EKS cluster) | `screenshots/image-4.png` |
+| `image-5.png` | GitHub Actions CI/CD pipeline green runs | `screenshots/image-5.png` |
+| `image-6.png` | Trivy security scan report output | `screenshots/image-6.png` |
+| `image-7.png` | Grafana metrics dashboard | `screenshots/image-7.png` |
+| `image-8.png` | Argo CD UI showing Synced & Healthy state | `screenshots/image-8.png` |
+| `image-9.png` | Troubleshooting 1: Pod describe & image fix | `screenshots/image-9.png` |
+| `image-10.png` | Troubleshooting 2: Service selector patch & endpoints | `screenshots/image-10.png` |
 
 ---
 
-# FINAL STUDENT PROJECT
+---
 
-Possible domains:
+## 16. Domain decisions (LoanBoard)
 
-- CRM
-- Inventory management
-- Appointment booking
-- Helpdesk
-- Ecommerce administration
-- Clinic management
-- Restaurant management
-- Employee management
-- Learning management system
-
-Minimum requirements:
-
-### Application
-
-- frontend
-- backend
-- PostgreSQL
-- minimum 4 REST APIs
-- responsive UI
-
-### Engineering
-
-- Git/GitHub
-- automated tests
-- Docker
-
-### DevOps
-
-- GitHub Actions
-- security scan
-- container registry
-- Terraform
-- Kubernetes
-- Helm
-- Ingress
-- HPA
-- Prometheus/Grafana
-
-### Final presentation
-
-Each student must demonstrate:
+Loan API:
 
 ```text
-Application
-  ↓
-Git commit
-  ↓
-CI pipeline
-  ↓
-Docker image
-  ↓
-Security scan
-  ↓
-Registry
-  ↓
-Terraform infrastructure
-  ↓
-Kubernetes deployment
-  ↓
-Helm
-  ↓
-Ingress
-  ↓
-Autoscaling
-  ↓
-Monitoring
-  ↓
-Troubleshooting
+GET    /api/loans?status=&loan_type=
+GET    /api/loans/stats
+GET    /api/loans/{id}
+POST   /api/loans
+PUT    /api/loans/{id}
+PATCH  /api/loans/{id}/status
+DELETE /api/loans/{id}
 ```
 
-That is the actual objective of Session 21.
-# devops-project
+1. **EMI formula**: reducing-balance `EMI = P*r*(1+r)^n / ((1+r)^n - 1)`, `r = annual_rate/12/100`, computed server-side in `application/backend/app/loans.py` with `Decimal`, stored as `Numeric(12, 2)`. Known check: P=100000, 12%, 12m → ₹8884.88.
+2. **Status state machine**: `submitted → under_review → approved/rejected`, `approved → disbursed`; terminal `rejected`/`disbursed`. Other moves return HTTP 400 via `PATCH /api/loans/{id}/status`.
+3. **Money as Decimal**: `principal_amount Numeric(12,2)`, `annual_interest_rate Numeric(5,2)`; validation `principal > 0`, `tenure 6–360`, `rate 1–40%`, valid email. Never float for money.
+
+## 15. Lessons Learned
+
+1. **Shift-Left Security Saves Time & Money**: Integrating Trivy, Gitleaks, and Bandit into the CI pipeline catches vulnerabilities before code ever touches a container registry or cluster.
+2. **GitOps Eliminates Configuration Drift**: Argo CD provides a verifiable audit trail of every change. Direct cluster edits (`kubectl edit`) are immediately reverted by self-healing.
+3. **Parameterization with Helm Enables Multi-Environment Parity**: Using a single chart with distinct `values-dev.yaml` and `values-prod.yaml` prevents configuration duplication and deployment mistakes.
+4. **Resilience Requires Layered Probes & Autoscaling**: Combining `startupProbe`, `livenessProbe`, `readinessProbe`, and `HPA` guarantees high availability even under sudden load spikes or slow container warmups.
+5. **Systematic Kubernetes Troubleshooting**: Following the 5-step methodology (`get` → `describe` → `logs` → `fix` → `verify`) eliminates guesswork when diagnosing cluster incidents.

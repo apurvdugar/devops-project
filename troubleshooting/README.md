@@ -18,7 +18,7 @@ This directory contains broken Kubernetes manifests designed to test and demonst
 
 ### Step 1: Introduce Issue
 ```bash
-kubectl apply -f final-devops-project/troubleshooting/broken-image.yaml
+kubectl apply -f troubleshooting/broken-image.yaml
 ```
 
 ### Step 2: Identify & Investigate
@@ -55,7 +55,7 @@ kubectl get pods -l app=loanboard-broken-image -n loanboard
 
 ### Step 1: Introduce Issue
 ```bash
-kubectl apply -f final-devops-project/troubleshooting/broken-service.yaml
+kubectl apply -f troubleshooting/broken-service.yaml
 ```
 
 ### Step 2: Identify & Investigate

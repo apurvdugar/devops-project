@@ -15,15 +15,15 @@ jobs:
         with: {python-version: '3.12'}
       - name: Install backend dependencies
         run: pip install -r requirements.txt
-        working-directory: final-devops-project/application/backend
+        working-directory: application/backend
       - name: Run backend tests
         run: pytest -q
-        working-directory: final-devops-project/application/backend
+        working-directory: application/backend
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
       - name: Build frontend
         run: npm install && npm run build
-        working-directory: final-devops-project/application/frontend
+        working-directory: application/frontend
   build-scan-push:
     needs: test
     runs-on: ubuntu-latest
@@ -37,8 +37,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build images
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/loanboard-backend:${{ github.sha }} ./final-devops-project/application/backend
-          docker build -t ghcr.io/${{ github.repository_owner }}/loanboard-frontend:${{ github.sha }} ./final-devops-project/application/frontend
+          docker build -t ghcr.io/${{ github.repository_owner }}/loanboard-backend:${{ github.sha }} ./application/backend
+          docker build -t ghcr.io/${{ github.repository_owner }}/loanboard-frontend:${{ github.sha }} ./application/frontend
       - name: Scan backend
         uses: aquasecurity/trivy-action@0.30.0
         with:
@@ -72,7 +72,7 @@ jobs:
           echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
       - name: Deploy with Helm
         run: |
-          helm upgrade --install loanboard ./final-devops-project/helm/loanboard -n loanboard --create-namespace \
+          helm upgrade --install loanboard ./helm/loanboard -n loanboard --create-namespace \
             --set backend.tag=${{ github.sha }} \
             --set frontend.tag=${{ github.sha }} \
             --set backend.image=ghcr.io/${{ github.repository_owner }}/loanboard-backend \

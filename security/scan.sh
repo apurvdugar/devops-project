@@ -15,7 +15,7 @@ fi
 
 echo "--> 2. SAST Scanning (Bandit for Python)"
 if command -v bandit &> /dev/null; then
-  bandit -c "$SCRIPT_DIR/.bandit" -r "$ROOT_DIR/backend/app"
+  bandit -c "$SCRIPT_DIR/.bandit" -r "$ROOT_DIR/application/backend/app"
 else
   echo "[SKIP] bandit CLI not installed locally, skipping local run."
 fi

@@ -16,7 +16,7 @@ This directory contains containerization files for building and testing the Loan
 
 ### Run Everything with Docker Compose
 ```bash
-cd final-devops-project/docker
+cd docker
 docker compose up -d --build
 
 # Verify running containers
