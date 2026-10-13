@@ -68,7 +68,7 @@ Login via browser at `https://localhost:8080` with username `admin`.
 ### Step 3: Deploy the LoanBoard GitOps Application
 ```bash
 # Apply the application CRD
-kubectl apply -f session21-python/gitops/application.yaml
+kubectl apply -f gitops/application.yaml
 
 # Check application status
 kubectl get applications -n argocd
