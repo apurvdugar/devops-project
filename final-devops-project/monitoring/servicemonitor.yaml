@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: taskboard-backend-monitor
+  namespace: taskboard
+  labels:
+    release: monitoring
+    app: taskboard-backend
+spec:
+  selector:
+    matchLabels:
+      app: taskboard-backend
+  namespaceSelector:
+    matchNames:
+      - taskboard
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

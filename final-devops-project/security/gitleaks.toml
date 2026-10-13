@@ -1,0 +1,12 @@
+title = "gitleaks config for devops-heros"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+  '''\.git''',
+  '''node_modules''',
+  '''\.terraform'''
+]

@@ -1,0 +1,5 @@
+[bandit]
+exclude: /tests,/venv,/.venv
+skips: B101
+confidence: HIGH
+severity: MEDIUM

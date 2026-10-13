@@ -1,0 +1,11 @@
+# Trivy scan configuration
+exit-code: 1
+severity:
+  - HIGH
+  - CRITICAL
+ignore-unfixed: true
+format: table
+scanners:
+  - vuln
+  - config
+  - secret
