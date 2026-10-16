@@ -1,4 +1,4 @@
-# End-to-End Production DevOps Project: LoanBoard
+# End-to-End Production DevOps Project: LoanBoard   
 
 LoanBoard is a production-style, containerized loan management application built to demonstrate a complete, modern DevOps lifecycle—spanning Infrastructure as Code, CI/CD with automated testing and vulnerability scanning, Kubernetes orchestration with Helm, observability with Prometheus & Grafana, and declarative GitOps with Argo CD.
 
