@@ -297,7 +297,7 @@ git push
 ```
 
 > ![ci cd pipeline](./screenshots/image-12.png)
-
+> Link - https://www.loom.com/share/c9c5ecc1b76c4556b9a207175208938d [link for cicd demonstration]
 ---
 
 ## 10. DevSecOps Implementation
