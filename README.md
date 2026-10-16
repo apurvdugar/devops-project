@@ -1,22 +1,22 @@
 # End-to-End Production DevOps Project: LoanBoard
 
-An enterprise-grade, end-to-end cloud-native DevOps project demonstrating modern software delivery, automated cloud infrastructure provisioning, containerized microservices orchestration, DevSecOps shift-left security, continuous monitoring, and declarative GitOps continuous delivery.
+LoanBoard is a production-style, containerized loan management application built to demonstrate a complete, modern DevOps lifecycle—spanning Infrastructure as Code, CI/CD with automated testing and vulnerability scanning, Kubernetes orchestration with Helm, observability with Prometheus & Grafana, and declarative GitOps with Argo CD.
 
 ---
 
 ## 1. Project Overview
 
-LoanBoard is a full-stack task management microservices application:
-- **Backend API**: Python 3.12 with **FastAPI**, **SQLAlchemy**, and **Pydantic** with unit & integration tests written in **pytest**.
-- **Frontend SPA**: Modern reactive UI built with **React** + **Vite**, served via a hardened multi-stage **Nginx** Alpine container.
-- **Database**: **PostgreSQL 16** with persistent volume storage and automated connection lifecycle management.
-- **Cloud Infrastructure**: Modular AWS infrastructure provisioned with **Terraform** (custom VPC with public/private subnets, NAT Gateways, Security Groups, and an AWS EKS Managed Kubernetes cluster).
-- **Orchestration**: Kubernetes manifests and reusable, environment-driven **Helm** charts supporting local dev and production profiles.
-- **CI/CD Pipeline**: Automated **GitHub Actions** workflows performing automated testing, multi-arch Docker image builds, security scanning, GHCR publishing, and deployment triggers.
-- **DevSecOps**: Multi-layer security gates integrating **SAST** (Bandit), **SCA** (Trivy), **Secret Scanning** (Gitleaks), and **Container Vulnerability Scanning** with automated build blocking on HIGH/CRITICAL CVEs.
-- **Monitoring & Observability**: **Prometheus Operator** and **Grafana** stack with custom `ServiceMonitor` definitions, metric scraping, and pre-built health and resource dashboards.
-- **GitOps Delivery**: Continuous reconciliation, drift detection, and automated self-healing powered by **Argo CD**.
-- **Troubleshooting**: Diagnostic lab solving real-world Kubernetes failure modes (`ImagePullBackOff` and broken service selectors).
+LoanBoard provides a realistic microservices workflow designed to handle loan applications, status transitions, and server-side EMI calculations:
+- **Backend API**: Built with Python 3.12, **FastAPI**, **SQLAlchemy**, and **Pydantic**. Features strict input validation, reducing-balance EMI calculations with exact `Decimal` precision, Alembic database migrations, and 12 unit/integration tests running under **pytest**.
+- **Frontend SPA**: A responsive dashboard built with **React** + **Vite**, served through a hardened, non-root multi-stage **Nginx** Alpine container. Includes real-time EMI previews, state-machine transition controls, and INR currency formatting.
+- **Database**: **PostgreSQL 16** with a dedicated PersistentVolumeClaim (PVC) ensuring persistent storage across pod restarts.
+- **Cloud Infrastructure**: Provisioned using modular **Terraform** on AWS, creating a dedicated dual-AZ VPC, public/private subnets, NAT Gateways, Security Groups, and an AWS EKS managed Kubernetes cluster.
+- **Orchestration**: Managed with native Kubernetes manifests and parameterized **Helm** charts supporting separate development (`values-dev.yaml`) and production (`values-prod.yaml`) configurations.
+- **CI/CD Pipeline**: GitHub Actions pipeline triggering on push and pull requests, running backend unit tests, building the frontend bundle, scanning containers for CVEs, and publishing tagged images to GitHub Container Registry (GHCR).
+- **DevSecOps**: Automated security checks running across the development lifecycle, combining SAST (Bandit), secret leak detection (Gitleaks), and container vulnerability scanning (Trivy) configured to fail on HIGH and CRITICAL CVEs.
+- **Monitoring & Observability**: Integrated **Prometheus** and **Grafana** via `kube-prometheus-stack` and a custom `ServiceMonitor` scraping `/metrics` from FastAPI to track request volume, error rates, and p95/p99 latencies.
+- **GitOps Delivery**: Continuous reconciliation, automated drift detection, and self-healing powered by **Argo CD**.
+- **Troubleshooting Lab**: Documented runbooks diagnosing and remediating real-world Kubernetes failure modes (`ImagePullBackOff` and broken service selectors).
 
 ---
 
@@ -109,9 +109,9 @@ LoanBoard is a full-stack task management microservices application:
 
 ## 4. Application Setup
 
-The application code is organized under [`application/`](./application):
-- **Backend**: FastAPI REST service with CRUD endpoints for loan applications (EMI computed server-side, guarded status transitions), health endpoints (`/health`, `/ready`), and Prometheus `/metrics`.
-- **Frontend**: Responsive React LoanBoard UI with INR formatting, EMI column + create-form EMI preview, status badges, valid-next-state actions, and status/loan-type filters.
+The application codebase is structured under [`application/`](./application):
+- **Backend**: FastAPI REST service providing full CRUD operations for loans, server-side EMI calculation using standard reducing-balance math, strict status state-machine enforcement (`submitted` → `under_review` → `approved`/`rejected` → `disbursed`), readiness/health probes (`/health`, `/ready`), and Prometheus telemetry (`/metrics`).
+- **Frontend**: Responsive React UI built with Vite, featuring real-time EMI estimation during loan creation, clean INR currency formatting, dynamic status action buttons, and type/status filters.
 
 ### Local Development Setup
 
@@ -143,7 +143,7 @@ npm run dev
 
 ## 5. Docker Setup
 
-A root-level [`docker-compose.yml`](./docker-compose.yml) is provided so the entire stack can be launched from the project root with a single command:
+To make local testing and evaluation seamless, a root-level [`docker-compose.yml`](./docker-compose.yml) allows spinning up the entire microservice stack (PostgreSQL database, FastAPI backend, and React frontend) with a single command:
 
 ```bash
 # Run multi-container stack from project root
@@ -174,6 +174,8 @@ docker run -d -p 8000:8000 \
 
 > ![docker compose run](./screenshots/image-4.png)
 > ![docker compose run](./screenshots/image-5.png)
+> ![ghcr](./screenshots/image-24.png)
+> ![ghcr](./screenshots/image-25.png)
 
 ---
 
@@ -201,6 +203,8 @@ kubectl get pods,svc,configmaps,secrets,pvc,hpa,ingress -n loanboard
 9. **Ingress**: Host-based routing for `loanboard.local`
 
 > ![kubernetes resources](./screenshots/image-6.png)
+> ![kubernetes resources](./screenshots/image-26.png)
+> ![kubectl deployed frontend](./screenshots/image-27.png)
 
 ---
 
@@ -306,7 +310,9 @@ Security policies and scan scripts are located in [`security/`](./security):
 
 ### Trivy Scan — What It Does and What It Found
 
-Trivy scans the OS-level packages like the Alpine and application-level dependencies (Python pip packages in the backend image, Node npm packages and Nginx Alpine layers in the frontend image) for known Common Vulnerabilities and Exposures (CVEs). In the CI pipeline, Trivy is configured with `severity: HIGH,CRITICAL` and `exit-code: 1`, meaning the build fails and blocks images from reaching GHCR if any fixable HIGH or CRITICAL CVE is detected. Our most recent scan produced a clean result for both images, confirming all base layers and pinned dependencies are free of known high-severity vulnerabilities.
+Trivy scans both the container base OS layers (Alpine for the frontend, Debian Bookworm Slim for the backend) and application-level libraries (pip packages in Python, npm dependencies in React). In our CI workflow, Trivy is configured with `severity: HIGH,CRITICAL` and `exit-code: '1'`, acting as a strict quality gate that halts the build and prevents images from being pushed to GHCR if any fixable HIGH or CRITICAL vulnerability is found.
+
+During our security hardening phase, Trivy initially detected vulnerable sub-dependencies (`starlette`, `urllib3`, `msgpack`, and `setuptools`). We resolved these by pinning updated patched package versions and adopting a multi-stage Docker build to strip build artifacts. As a result, our final pipeline run passed with 0 HIGH or CRITICAL vulnerabilities across both container images.
 
 ```bash
 # Execute local DevSecOps security suite:
@@ -320,9 +326,9 @@ bash security/scan.sh
 
 Observability configurations are located in [`monitoring/`](./monitoring):
 
-- **Prometheus Operator**: Deployed via `kube-prometheus-stack` Helm chart.
-- **ServiceMonitor**: Custom CRD [`monitoring/servicemonitor.yaml`](./monitoring/servicemonitor.yaml) targets `loanboard-backend` pods on port 8000.
-- **Grafana Dashboard**: Visualizes cluster CPU, memory saturation, container restarts, and HTTP response latencies.
+- **Prometheus Operator**: Deployed into the `monitoring` namespace using the `kube-prometheus-stack` Helm chart.
+- **ServiceMonitor**: Custom resource [`monitoring/servicemonitor.yaml`](./monitoring/servicemonitor.yaml) targets the `loanboard-backend` service on port 8000, scraping FastAPI's `/metrics` endpoint every 15 seconds.
+- **Grafana Dashboard**: Pre-configured JSON dashboard ([`monitoring/loanboard-dashboard.json`](./monitoring/loanboard-dashboard.json)) visualizing live HTTP throughput, error rates, request latency percentiles (p50, p95, p99), and pod resource utilization.
 
 ```bash
 # Deploy monitoring stack
@@ -335,7 +341,7 @@ kubectl apply -f monitoring/servicemonitor.yaml
 # Access Grafana
 kubectl port-forward svc/monitoring-grafana -n monitoring 3000:80
 ```
-
+> ![prometheus dashboard](./screenshots/image-28.png)
 > ![grafana dashboard](./screenshots/image-17.png)
 > ![grafana dashboard](./screenshots/image-18.png)
 
@@ -412,8 +418,8 @@ DELETE /api/loans/{id}
 
 ## 15. Lessons Learned
 
-1. **Shift-Left Security Saves Time & Money**: Integrating Trivy, Gitleaks, and Bandit into the CI pipeline catches vulnerabilities before code ever touches a container registry or cluster.
-2. **GitOps Eliminates Configuration Drift**: Argo CD provides a verifiable audit trail of every change. Direct cluster edits (`kubectl edit`) are immediately reverted by self-healing.
-3. **Parameterization with Helm Enables Multi-Environment Parity**: Using a single chart with distinct `values-dev.yaml` and `values-prod.yaml` prevents configuration duplication and deployment mistakes.
-4. **Resilience Requires Layered Probes & Autoscaling**: Combining `startupProbe`, `livenessProbe`, `readinessProbe`, and `HPA` guarantees high availability even under sudden load spikes or slow container warmups.
-5. **Systematic Kubernetes Troubleshooting**: Following the 5-step methodology (`get` → `describe` → `logs` → `fix` → `verify`) eliminates guesswork when diagnosing cluster incidents.
+1. **Shift-Left Security Catches Issues Early**: Enforcing Trivy scans with strict exit-code 1 in the CI pipeline caught vulnerable sub-dependencies immediately, preventing security debt from ever reaching our production registry.
+2. **GitOps Eliminates Configuration Drift**: Using Argo CD ensures that Git is always the single source of truth. Any direct cluster edits (`kubectl edit`) are detected and automatically reverted by self-healing within minutes.
+3. **Helm Parameterization Ensures Environment Parity**: Maintaining one unified chart with environment-specific value overlays (`values-dev.yaml` and `values-prod.yaml`) eliminates duplicate manifests and prevents subtle staging-vs-production discrepancies.
+4. **Resilience Depends on Thoughtful Probes & Autoscaling**: Combining proper startup, liveness, and readiness probes with an HPA prevents traffic from hitting uninitialized pods and handles sudden traffic surges reliably.
+5. **Structured Troubleshooting Saves Hours**: Adopting a disciplined 5-step diagnostic workflow (`get` → `describe` → `logs` → `fix` → `verify`) makes resolving real cluster failures like `ImagePullBackOff` fast and deterministic.
